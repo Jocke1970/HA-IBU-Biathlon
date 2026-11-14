@@ -9,3 +9,6 @@ tools/ibu_live_logs/
 .env
 elite_timing_logs/
 tools/elite_timing_logs/
+before.json
+after.json
+captures/
