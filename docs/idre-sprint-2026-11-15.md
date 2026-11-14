@@ -29,3 +29,21 @@
 
 ## Repo scope
 This is a research-only plan, not a Home Assistant integration. Follow `dev → beta → main` once implementation begins.
+
+
+## Offline comparison (no external API credentials)
+
+The file `tools/elite_compare.py` compares two manually exported JSON response bodies from **the same event, class and checkpoint**. It performs no network requests.
+
+1. On the live page, inspect DevTools > Network > Fetch/XHR and select the relevant `GetResultlistWithAthletes` request. Confirm the *Response* contains a JSON object with a `Data` array.
+2. Manually save its **Response body only** as `before.json` (without headers, cookies, keys or credentials). Repeat a few minutes later for the **same full Request URL**, saving `after.json`.
+3. On your laptop, run:
+   ```bash
+   python elite_compare.py before.json after.json
+   ```
+   Or when using a Git clone: `python tools/elite_compare.py before.json after.json`.
+4. Record observed change count, race/class/checkpoint identifier and timestamps, then repeat for shooting and finish checkpoints if available.
+
+Results may include athlete birth dates and other personal details. Keep the raw response files local; share only redacted excerpts or the comparison summary. Do not commit them to GitHub.
+
+This is a manual diagnostic fallback while external API access remains unverified.
