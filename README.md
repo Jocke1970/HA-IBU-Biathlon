@@ -7,7 +7,8 @@ Research project for a future Home Assistant biathlon calendar and live-results 
 ## Experimental tools
 
 - [`tools/ibu_api_probe.py`](tools/ibu_api_probe.py) — inspect IBU seasons, events, competitions, and optional race results.
-- [`tools/ibu_live_logger.py`](tools/ibu_live_logger.py) — write timestamped JSONL snapshots for later comparison.
+- [`tools/ibu_live_logger.py`](tools/ibu_live_logger.py) — write timestamped IBU JSONL snapshots for later comparison.
+- [`tools/elite_timing_logger.py`](tools/elite_timing_logger.py) — collect timestamped EliteTiming/NSF Timing results for the observed Idre men's race endpoint (experimental).
 
 These tools use an **unofficial/undocumented** public-facing IBU Sport API. Access, API key discovery, endpoints, and data freshness are not guaranteed. Check the provider's usage terms before polling.
 
@@ -35,7 +36,15 @@ python tools/ibu_live_logger.py --race-id YOUR_RACE_ID --interval 60 --minutes 5
 
 If that works, add `--analytics` to gather selected shooting/range/skiing analyses. This makes 10 requests per cycle. Use responsibly and stop on authentication or rate-limit failures.
 
-Output folders `ibu_probe_output/` and `ibu_live_logs/` are excluded from Git. Do **not** commit live response dumps until you have checked provider permissions and the data they contain.
+For the observed Idre endpoint, use:
+
+```bash
+python tools/elite_timing_logger.py --minutes 5 --interval 60
+```
+
+The EliteTiming script defaults to the exact endpoint observed in browser DevTools on 14 November 2026. It might stop working after the race; another class or timing point needs its own URL via `--url`. This third-party endpoint is not documented as public for automated use. Test gently, respect terms, and stop on denial/rate limits.
+
+Output folders `ibu_probe_output/`, `ibu_live_logs/`, and `elite_timing_logs/` are excluded from Git. Do **not** commit live response dumps until you have checked provider permissions and the data they contain.
 
 ## Development workflow
 
