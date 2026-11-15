@@ -83,3 +83,45 @@ python signalr_browser_capture.py --race 2854
 In the newly opened browser window, navigate manually to the public CCResult event, then keep that window open while collecting. Use **Ctrl+C** in the terminal to stop. Captures are saved in `captures/browser_YYYYMMDD_HHMMSS/events.jsonl`. A session started after the event has finished will not magically replay the live events. The browser is an isolated, temporary session, not your everyday Brave profile. This captures only events that arrive while the recording session is open; it may miss updates during disconnects.
 
 This is **not** a standalone API client and its end-to-end live behavior is not yet verified. Message formats and permissions may change. Don't commit captures, profile data, or credentials.
+
+## CCResult REST checkpoint recording (experimental)
+
+The standalone `tools/elite_rest_browser_capture.py` listens to **JSON responses the
+CCResult page itself fetches**. It does not fetch any endpoint separately or
+extract API keys. It records only `GetStartlist` and
+`GetResultlistWithAthletes`, preserving the JSON payload and sanitized
+`RaceID`, class, level and `ipos` metadata (never cookies, access tokens,
+request headers or complete request URLs).
+
+Run in the local Linux Mint working directory:
+
+```bash
+cd ~/IBU-Biathlon
+source .venv/bin/activate
+python -m pip install playwright
+curl -fL -o elite_rest_browser_capture.py \
+  https://raw.githubusercontent.com/Jocke1970/HA-IBU-Biathlon/main/tools/elite_rest_browser_capture.py
+python elite_rest_browser_capture.py --race 2854
+```
+
+Navigate to the public event in the newly opened Brave window. Select
+different checkpoint columns in the results interface. Stop with Ctrl+C.
+Output: `captures/rest_YYYYMMDD_HHMMSS/rest_snapshots.jsonl`.
+Changes at the same checkpoint are stored as new snapshots. Responses with
+unchanged content are skipped. **Selecting a checkpoint is not proof that a
+new request occurred.** Only actual observed network responses are recorded;
+unrequested checkpoints, historical placement changes before capture, and
+officially defined skiing/range times are **not** automatically available.
+The endpoint-to-checkpoint label mapping still needs confirmation.
+
+The capture saves publicly visible athlete result payloads locally, so keep
+these files private and out of Git. The tool has not yet been validated
+end-to-end in a live race. It is separate from the working SignalR capture
+and does not modify it.
+
+Offline tests (if using the full Git checkout):
+
+```bash
+python -m unittest discover -s tools -p 'test_elite_rest_browser_capture.py'
+python -m unittest discover -s tools -p 'test_signalr_browser_capture.py'
+```
