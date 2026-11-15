@@ -53,6 +53,13 @@ class MergeTests(unittest.TestCase):
                 {"kind": "shooting", "race_id": "2854", "athlete_id": None,
                  "shoot_nr": 0, "sum_shooted": 0}
             ]
+            updates.append({
+                "kind": "shooting", "race_id": "2854", "athlete_id": "ath_2854",
+                "shoot_nr": 1, "captured_utc": "2026-11-15T11:13:00+00:00",
+                "sum_shooted": 0, "missed": 1, "shots": [],
+                "in_time": "2026-11-15T11:13:00",
+                "out_time": "2026-11-15T11:13:00",
+            })
             rest = self.write(temp, "rest.jsonl", [start, result, sentinel])
             events = self.write(temp, "events.jsonl", updates)
             rows, report = merge([rest], [events])
@@ -65,6 +72,8 @@ class MergeTests(unittest.TestCase):
             self.assertEqual(rows[0]["shootings"][0]["observed_counts"], [1, 5])
             self.assertIn("shoot_1_individual_shot_timestamps_missing",
                           rows[0]["quality_flags"])
+            self.assertIn("shoot_1_reset_after_shots", rows[0]["quality_flags"])
+            self.assertEqual(report["warnings"]["shooting_reset_after_shots"], 1)
             self.assertEqual(report["warnings"]["unidentified_shooting_updates"], 1)
             self.assertEqual(report["warnings"]["invalid_or_missing_runtime"], 1)
 
