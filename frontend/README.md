@@ -14,7 +14,8 @@ frontend/
     en.js
 ```
 
-For a manual Home Assistant **development** install, copy the **whole**
+For a future Home Assistant **beta test** (after the beta branch is prepared
+and smoke-tested), copy the **whole**
 `frontend/` folder's contents to
 `/config/www/ha-ibu-biathlon/` and register a **JavaScript module**
 Lovelace resource with path
@@ -22,7 +23,8 @@ Lovelace resource with path
 The sibling `translations/` directory must travel with the JS module.
 Do not copy just the main JS file. This persistent path is intentional:
 future beta packaging should use the same file organization or a managed
-distribution path. A manual development resource is NOT a beta release.
+distribution path. Do not install the unverified dev build in the user's Home Assistant.
+Package and validate beta before requesting any HA testing.
 Remove the manual resource when switching to HACS packaging to avoid
 loading two versions.
 
