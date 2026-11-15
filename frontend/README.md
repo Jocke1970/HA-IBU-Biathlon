@@ -187,3 +187,23 @@ scroll or forced fixed-width overflow.
 Do not change the `www` directory structure for this UI-only
 modification. Beta b1 remains the known working reference until the
 new release passes CI and HA testing.
+
+## b3 development UI
+
+- Header renders competition name, city and country from the replay's
+  optional `race.name`, `race.city` and `race.country`, or the
+  visual editor's `competition_name`, `competition_city`,
+  `competition_country` overrides. No location is guessed.
+- Results show checkpoint-local position, latest cumulative elapsed time,
+  gap at the same station, and real section deltas (`segment_ms`)
+  between known cumulative passing times. Missing or not-yet-mapped
+  lap numbers remain `–` rather than invented.
+- A standard sprint has three skiing loops and two shooting stages;
+  **lap times must not be inferred simply from checkpoint count**.
+  Mapping checkpoint IDs to verified skiing lap boundaries remains
+  a separate backend job.
+- Range puts clock values to the left and five targets bottom-right.
+  If only elapsed presence time exists it is marked `*`, never
+  presented as completed range duration. Shot series timing is
+  withheld unless five actual individual timestamps are available.
+- This is a `dev` prototype until code tests and a real HA beta test.
