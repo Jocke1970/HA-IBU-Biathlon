@@ -29,6 +29,7 @@ class LiveStateTests(unittest.TestCase):
         active = self.state("12:08:20")["shooting_range"]
         self.assertEqual(active[0]["state"], "active")
         self.assertIsNone(active[0]["final_shoot_string"])
+        self.assertIsNone(active[0]["out_time"])
         self.assertEqual(active[0]["elapsed_on_range_seconds"], 20)
         finished = self.state("12:08:30")["shooting_range"]
         self.assertEqual(finished[0]["state"], "recently_finished")
