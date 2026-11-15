@@ -70,6 +70,32 @@ class LeaderboardTests(unittest.TestCase):
         self.assertEqual(len(state["checkpoint_groups"]), 1)
         self.assertEqual(next(iter(state["checkpoint_groups"].values()))["comparable_athletes"], 1)
 
+    def test_reconstructed_terminal_status_waits_for_source_receipt(self):
+        merged = self.save("status_timeline.json", [
+            {"race_id": "2854", "athlete_id": "grete", "class_id": "women",
+             "bib": 23, "name": "Grete Gaim", "nation": "EST",
+             "result_status": "DNF", "source_status_code": 101,
+             "result_status_observed_utc": "2026-11-15T12:36:43+00:00",
+             "checkpoints": []},
+            {"race_id": "2854", "athlete_id": "annie", "class_id": "women",
+             "bib": 45, "name": "Annie Lind", "nation": "SWE",
+             "result_status": "DNS", "source_status_code": 102,
+             "result_status_observed_utc": "2026-11-15T12:36:43+00:00",
+             "checkpoints": []},
+        ])
+        before = build_snapshot("reconstructed",
+                                datetime.fromisoformat("2026-11-15T12:08:50"),
+                                merged_path=merged)
+        self.assertTrue(all(row["status"] == "no_verified_passing"
+                            for row in before["classes"]["women"]))
+        self.assertTrue(all(row["result_status"] is None
+                            for row in before["classes"]["women"]))
+        after = build_snapshot("reconstructed",
+                               datetime.fromisoformat("2026-11-15T13:40:00"),
+                               merged_path=merged)
+        self.assertEqual([row["status"] for row in after["classes"]["women"]],
+                         ["DNF", "DNS"])
+
     def test_idre_dnf_dns_never_receive_elapsed_rank(self):
         rows = [
             self.athlete("grete", "women", 23, 120960000000, "finish"),
