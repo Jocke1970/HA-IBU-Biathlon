@@ -52,6 +52,8 @@ def decode(raw):
     value = args[0]
     if isinstance(value, str):
         value = json.loads(value)
+    if isinstance(value, list) and len(value) == 1 and isinstance(value[0], dict):
+        value = value[0]
     return {"kind": "receive", "payload": value}
 
 
