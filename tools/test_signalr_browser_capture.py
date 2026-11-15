@@ -27,7 +27,8 @@ class TestBrowserCapture(unittest.TestCase):
                 "StartNo": 5, "ShootNr": 2, "SumShooted": 5,
                 "Missed": 4, "Prone": False, "Lane": 15,
                 "Target1": {"Hit": False, "Shootime": "2026-11-15T09:20:14"},
-                "Target2": {"Hit": True, "ShootTime": "2026-11-15T09:20:18"},
+                "Target2": {"Hit": True, "ShootTime": "2026-11-15T09:20:18",
+                            "ShootRunTime": 3200},
                 "secret_test_field": "must not leak"
             }
         }
@@ -36,6 +37,7 @@ class TestBrowserCapture(unittest.TestCase):
         record = compact_record(*found[0])
         self.assertEqual(record["sum_shooted"], 5)
         self.assertEqual(record["shots"][1]["hit"], True)
+        self.assertEqual(record["shots"][1]["shoot_runtime"], 3200)
         self.assertEqual(record["shots"][0]["time"], "2026-11-15T09:20:14")
         self.assertNotIn("secret_test_field", json.dumps(record))
 
