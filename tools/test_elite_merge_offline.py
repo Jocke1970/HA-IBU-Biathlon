@@ -12,6 +12,32 @@ class MergeTests(unittest.TestCase):
         path.write_text("".join(json.dumps(v) + "\n" for v in values), encoding="utf-8")
         return path
 
+    def test_idre_dnf_dns_statuses_are_preserved(self):
+        with tempfile.TemporaryDirectory() as temp:
+            athletes = [
+                {"AthleteID": "grete", "ClassID": "women", "Startno": 23,
+                 "Status": 101, "Athlete": {"FormatedName": "Grete Gaim"},
+                 "Time": {"Ipos": 18, "IntermediateID": "finish",
+                          "RunTimeMS": 120960000000}},
+                {"AthleteID": "annie", "ClassID": "women", "Startno": 45,
+                 "Status": 102, "Athlete": {"FormatedName": "Annie Lind"},
+                 "Time": {"Ipos": 18, "IntermediateID": "finish",
+                          "RunTimeMS": 129600000000}},
+            ]
+            rest = self.write(temp, "statuses.jsonl", [
+                {"endpoint": "results", "race_id": "2854",
+                 "class_id": "women", "ipos": "18",
+                 "payload": {"Data": athletes}}
+            ])
+            rows, report = merge([rest], [])
+            by_bib = {a["bib"]: a for a in rows}
+            self.assertEqual(by_bib[23]["result_status"], "DNF")
+            self.assertEqual(by_bib[45]["result_status"], "DNS")
+            self.assertEqual(report["result_statuses"], {"DNF": 1, "DNS": 1})
+            self.assertTrue(all(not a["checkpoints"] for a in rows))
+            self.assertTrue(all("no_valid_checkpoints" not in a["quality_flags"]
+                                for a in rows))
+
     def test_valid_runtime_and_ranges(self):
         self.assertIsNone(milliseconds(129600000000))
         self.assertIsNone(milliseconds(None))
