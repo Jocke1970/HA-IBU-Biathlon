@@ -226,8 +226,8 @@ class IbuBiathlonCard extends HTMLElement {
       const shotTimes=Array.isArray(s.shots_with_timestamps)
         ?s.shots_with_timestamps.filter(x=>x && typeof x.time==="string" && x.time):[];
       const parsed=shotTimes.map(x=>Date.parse(x.time)).filter(Number.isFinite).sort((a,b)=>a-b);
-      const seriesTime=parsed.length>=2?(parsed[parsed.length-1]-parsed[0])/1000:null;
-      const intervals=parsed.length>=2?parsed.slice(1).map((ms,i)=>((ms-parsed[i])/1000).toFixed(1)+" s").join(" · "):"–";
+      const seriesTime=parsed.length===5?(parsed[4]-parsed[0])/1000:null;
+      const intervals=parsed.length===5?parsed.slice(1).map((ms,i)=>((ms-parsed[i])/1000).toFixed(1)+" s").join(" · "):"–";
       return `<div class="range-row">
         <div class="range-head"><div><strong>${escapeHtml(t.lane)} ${escapeHtml(s.lane??"–")}</strong> ·
         ${config.show_flags?flag(s.nation)+" ":""}${escapeHtml(s.name||"#"+s.bib)}</div>
@@ -235,7 +235,7 @@ class IbuBiathlonCard extends HTMLElement {
         <div class="range-body">
           <div class="range-times">
             <span class="key">${escapeHtml(t.rangeTime)}</span>
-            <span class="value">${escapeHtml(rangeTime==="–"?elapsedRange+" *":rangeTime)}</span>
+            <span class="value">${escapeHtml(rangeTime==="–"?(elapsedRange==="–"?"–":elapsedRange+" *"):rangeTime)}</span>
             <span class="key">${escapeHtml(t.seriesTime)}</span>
             <span class="value">${escapeHtml(seriesTime===null?"–":seriesTime.toFixed(1)+" s")}</span>
             <span class="key">${escapeHtml(t.shotIntervals)}</span>
