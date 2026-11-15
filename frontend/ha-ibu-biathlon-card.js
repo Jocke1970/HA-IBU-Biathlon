@@ -1,7 +1,7 @@
 import sv from "./translations/sv.js";
 import en from "./translations/en.js";
 
-const VERSION = "2026.11.0-dev.3";
+const VERSION = "2026.11.0-dev.4";
 const type = "custom:ha-ibu-biathlon-card";
 const escapeHtml = (v) => String(v ?? "").replace(/[&<>"']/g, c => (
   {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -61,6 +61,25 @@ const css = `
   .panel h3 {margin:0 0 10px;font-size:.91rem}
   .entry {display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px;padding:8px 0;border-top:1px solid var(--divider-color);font-size:.84rem}
   .entry:first-of-type {border-top:0}
+  .result-scroll {overflow-x:auto;margin-top:12px}
+  .results-table {width:100%;border-collapse:collapse;min-width:490px;font-size:.8rem}
+  .results-table th {font-size:.69rem;color:var(--biathlon-muted);font-weight:600;text-align:left;white-space:nowrap;padding:9px 7px;border-bottom:1px solid var(--divider-color)}
+  .results-table td {padding:10px 7px;border-bottom:1px solid var(--divider-color);vertical-align:middle}
+  .results-table .num {font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+  .results-table .athlete {min-width:140px}
+  .results-table .athlete small {display:block;color:var(--biathlon-muted);margin-top:3px}
+  .results-table .same-station {font-weight:650}
+  .range-row {border-top:1px solid var(--divider-color);padding:12px 0}
+  .range-row:first-of-type {margin-top:12px}
+  .range-head {display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:.84rem}
+  .range-body {display:grid;grid-template-columns:minmax(160px,1fr) auto;gap:16px;align-items:end;margin-top:10px}
+  .range-times {display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:14px;row-gap:5px;font-size:.77rem}
+  .range-times .value {text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .range-times .key {color:var(--biathlon-muted)}
+  .range-targets {display:flex;flex-direction:column;align-items:flex-end;justify-content:end;gap:4px}
+  .range-targets .targets {margin:0;gap:7px}
+  .range-targets .minor {font-size:.7rem;text-align:right}
+  @media(max-width:480px){.range-body{grid-template-columns:1fr}.range-targets{justify-self:end}}
   .minor,.clock,.notice {font-size:.73rem;color:var(--biathlon-muted)}
   .notice {margin-top:10px}
   .shooting {margin:8px 0}
@@ -161,23 +180,64 @@ class IbuBiathlonCard extends HTMLElement {
       return `<div class="clock">${parts.map(escapeHtml).join(" · ")}</div>`;
     };
     const sourceLine=(side)=>escapeHtml(sources[side]?.provider_name||t.unknown);
-    const results=people.length ? people.map(p=>{
-      const cp=p.last_checkpoint;
-      const status=p.display_status||p.status||t.unknownStatus;
-      const pos=cp?.checkpoint_position!=null?`#${cp.checkpoint_position} · `:"";
-      return `<div class="entry"><div>
-        <div>${config.show_flags?flag(p.nation)+" ":""}<strong>${escapeHtml(p.bib??"–")}</strong> ${escapeHtml(p.name||t.unknown)}</div>
-        <div class="minor">${escapeHtml(cp?`${t.checkpoint} ${cp.ipos} · ${pos}${status}`:status)}</div>
-      </div><div>${escapeHtml(cp?elapsed(cp.elapsed_ms):"–")}</div></div>`;
-    }).join(""):`<div class="error">${escapeHtml(t.noData)}</div>`;
+    const results=people.length ? `<div class="result-scroll"><table class="results-table">
+      <thead><tr><th>${escapeHtml(t.rank)}</th><th>${escapeHtml(t.athlete)}</th>
+      <th>${escapeHtml(t.currentLap)}</th><th>${escapeHtml(t.latestSplit)}</th>
+      <th class="num">${escapeHtml(t.elapsed)}</th><th class="num">${escapeHtml(t.gap)}</th></tr></thead>
+      <tbody>${people.map(p=>{
+        const cp=p.last_checkpoint;
+        const status=p.display_status||p.status||t.unknownStatus;
+        const position=cp?.checkpoint_position!=null?`#${cp.checkpoint_position}`:"–";
+        const sameStation=cp?.position_scope==="same_class_and_checkpoint_only"||cp?.checkpoint_position!=null;
+        const gap=typeof cp?.checkpoint_diff_ms==="number"
+          ?(cp.checkpoint_diff_ms===0?"±0,0":`+${elapsed(cp.checkpoint_diff_ms)}`):"–";
+        const currentLap=Number.isInteger(p.current_lap) && p.current_lap>0
+          ?p.current_lap:"–";
+        const currentSplit=cp?.ipos? `${t.checkpoint} ${cp.ipos}` : "–";
+        return `<tr><td class="num ${sameStation?"same-station":""}"
+          title="${escapeHtml(t.stationOnly)}">${escapeHtml(position)}</td>
+          <td class="athlete"><div>${config.show_flags?flag(p.nation)+" ":""}<strong>${escapeHtml(p.bib??"–")}</strong>
+          ${escapeHtml(p.name||t.unknown)}</div><small>${escapeHtml(status)}</small></td>
+          <td>${escapeHtml(currentLap)}</td><td>${escapeHtml(currentSplit)}</td>
+          <td class="num">${escapeHtml(cp?elapsed(cp.elapsed_ms):"–")}</td>
+          <td class="num">${escapeHtml(cp?gap:"–")}</td></tr>`;
+      }).join("")}</tbody></table>
+      <div class="minor">${escapeHtml(t.stationOnly)} · ${escapeHtml(t.lapUnavailable)}</div></div>`
+      :`<div class="error">${escapeHtml(t.noData)}</div>`;
     const lanes=range.length?range.map(s=>{
       const pattern=typeof s.shoot_string==="string"?s.shoot_string.slice(0,5):"";
-      const targets=[...pattern].map(x=>`<span class="target ${x==="x"?"miss":"hit"}"></span>`).join("");
-      return `<div class="entry"><div>
-        <div>${escapeHtml(t.lane)} ${escapeHtml(s.lane??"–")} · ${config.show_flags?flag(s.nation)+" ":""}${escapeHtml(s.name||"#"+s.bib)}</div>
-        <div class="minor">${escapeHtml(s.shots_count??0)} ${escapeHtml(t.shots)}, ${escapeHtml(s.missed??0)} ${escapeHtml(t.misses)} · ${escapeHtml(s.state||"")}</div>
-        <div class="targets">${targets}</div>
-      </div><div>${typeof s.elapsed_on_range_seconds==="number"?escapeHtml(s.elapsed_on_range_seconds.toFixed(1)+" s"):"–"}</div></div>`;
+      const targets=Array.from({length:5},(_,i)=>{
+        const x=pattern[i];
+        return `<span class="target ${x==="x"?"miss":x==="o"?"hit":""}" aria-label="${escapeHtml(x==="x"?t.miss:x==="o"?t.hit:t.unknown)}"></span>`;
+      }).join("");
+      const rangeTime=typeof s.range_seconds==="number" && Number.isFinite(s.range_seconds)
+        ?s.range_seconds.toFixed(1)+" s": "–";
+      const elapsedRange=typeof s.elapsed_on_range_seconds==="number" && Number.isFinite(s.elapsed_on_range_seconds)
+        ?s.elapsed_on_range_seconds.toFixed(1)+" s":"–";
+      const shotTimes=Array.isArray(s.shots_with_timestamps)
+        ?s.shots_with_timestamps.filter(x=>x && typeof x.time==="string" && x.time):[];
+      const parsed=shotTimes.map(x=>Date.parse(x.time)).filter(Number.isFinite).sort((a,b)=>a-b);
+      const seriesTime=parsed.length>=2?(parsed[parsed.length-1]-parsed[0])/1000:null;
+      const intervals=parsed.length>=2?parsed.slice(1).map((ms,i)=>((ms-parsed[i])/1000).toFixed(1)+" s").join(" · "):"–";
+      return `<div class="range-row">
+        <div class="range-head"><div><strong>${escapeHtml(t.lane)} ${escapeHtml(s.lane??"–")}</strong> ·
+        ${config.show_flags?flag(s.nation)+" ":""}${escapeHtml(s.name||"#"+s.bib)}</div>
+        <span class="minor">${escapeHtml(t.shootNumber)} ${escapeHtml(s.shoot_nr??"–")}</span></div>
+        <div class="range-body">
+          <div class="range-times">
+            <span class="key">${escapeHtml(t.rangeTime)}</span>
+            <span class="value">${escapeHtml(rangeTime==="–"?elapsedRange+" *":rangeTime)}</span>
+            <span class="key">${escapeHtml(t.seriesTime)}</span>
+            <span class="value">${escapeHtml(seriesTime===null?"–":seriesTime.toFixed(1)+" s")}</span>
+            <span class="key">${escapeHtml(t.shotIntervals)}</span>
+            <span class="value">${escapeHtml(intervals)}</span>
+          </div>
+          <div class="range-targets"><div class="targets">${targets}</div>
+            <div class="minor">${escapeHtml(s.shots_count??0)} ${escapeHtml(t.shots)} ·
+            ${escapeHtml(s.missed??0)} ${escapeHtml(t.misses)}</div></div>
+        </div>
+        <div class="minor">${escapeHtml(s.state||"")} · ${escapeHtml(t.rangeTimeCaveat)}</div>
+      </div>`;
     }).join(""):`<div class="error">${escapeHtml(t.noRange)}</div>`;
     const verified=data?.sources?.results?.live_verified && data?.sources?.shooting?.live_verified && !isDemo;
     const badge=isDemo?t.demoNotice:verified?t.live:data?t.replay:t.noData;
