@@ -134,7 +134,7 @@ def replay(athletes, at, shooting_offset_hours=1, hold_seconds=15, finish_statio
             "name": person["name"], "nation": person["nation"],
             "shoot_nr": source["shoot_nr"], "lane": source["lane"],
             "state": state, "in_time": source["at"].isoformat(),
-            "out_time": departure.isoformat() if departure else None,
+            "out_time": departure.isoformat() if departure and at >= departure else None,
             "elapsed_on_range_seconds": round((elapsed_until - source["at"]).total_seconds(), 3),
             "final_shoot_string": source["result"] if state == "recently_finished" else None,
             "final_missed": source["missed"] if state == "recently_finished" else None,
