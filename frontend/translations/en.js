@@ -1,4 +1,5 @@
 export default {
+ inactiveLane:"Unavailable",
  assumedCapacity:"assumed standard",
  laneCapacity:"Lanes",atLeast:"at least",laneCountUnknown:"Lane count unknown",laneCountOverride:"Venue lanes (0 = default 30, max 30)",
  rangeLayout:"Shooting range view",laneCount:"Number of lanes",emptyLane:"Vacant",rangeIn:"Range entry",rangeOut:"Range exit",elapsedRange:"Time elapsed on range",
