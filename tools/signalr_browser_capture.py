@@ -24,6 +24,7 @@ except ImportError:
     sys.exit("Playwright missing. Run: python -m pip install playwright msgpack")
 
 from signalr_offline import frames, decode
+from ibu_signalr_target_probe import ShotFieldProbe
 
 
 def safe_messages(frame):
@@ -103,6 +104,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--race", help="Optional race ID to retain, e.g. 2854")
     parser.add_argument("--out", help="Output directory (defaults to dated capture folder)")
+    parser.add_argument("--probe-targets", action="store_true",
+                        help="Count raw Source=4 target timing fields before compacting")
     args = parser.parse_args()
 
     browser_path = next((shutil.which(name) for name in (
@@ -117,6 +120,7 @@ def main():
     folder.mkdir(parents=True, exist_ok=True)
     outfile = folder / "events.jsonl"
     stats = {"received": 0, "stored": 0}
+    probe = ShotFieldProbe() if args.probe_targets else None
     # Deduplicate consecutive identical snapshots per source, race and athlete+shoot.
     last = {}
 
@@ -147,6 +151,8 @@ def main():
                         for payload, race_id in safe_messages(frame):
                             if args.race and race_id != args.race:
                                 continue
+                            if probe is not None and payload["Source"] == 4:
+                                probe.add(payload["Object"])
                             record = compact_record(payload, race_id)
                             key = (
                                 race_id, record["source"], record.get("athlete_id"),
@@ -184,6 +190,12 @@ def main():
                 browser.close()
 
     print(f"Result: {outfile}")
+    if probe is not None:
+        target = folder / "source4_target_probe.json"
+        target.write_text(json.dumps(probe.report(), ensure_ascii=False, indent=2) + "\\n",
+                          encoding="utf-8")
+        print(json.dumps(probe.report(), ensure_ascii=False, indent=2))
+        print(f"Sanitized field-presence report: {target}")
 
 
 if __name__ == "__main__":
