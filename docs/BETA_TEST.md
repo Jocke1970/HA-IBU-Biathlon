@@ -88,3 +88,24 @@ also supports a small built-in demo without a file.
 
 When the test passes, capture genuine HA screenshots for README and
 prepare the next beta iteration; do not move to main prematurely.
+
+## b2 – wide responsive layout
+
+Version `2026.11.0b2` retains the existing single-file bundled dashboard
+installation. On a sufficiently wide card (~960px or more), results and
+shooting get **equal-width columns** with wider spacing and padding.
+On a narrower HA card container they stack vertically, independent
+of the physical browser width. This is intentional to avoid two cramped
+240px columns.
+
+**Existing HA installation:** replace only the contents of the
+already registered bundled JavaScript file. If your one resource is
+`/local/ha-ibu-biathlon-card.js`, keep it; ensure the file behind
+that URL is the standalone **dist/HA-IBU-Biathlon.js** bundle, with
+version `2026.11.0b2`. Do not register a second resource or install
+the `frontend/` development source. Keep the existing
+`/local/ibu/idre_120850.json` snapshot unchanged.
+
+For genuine 50/50 wide columns, give the card enough width in the
+dashboard (such as a Panel view or a full-width Sections arrangement).
+The card cannot override HA's available column width.
