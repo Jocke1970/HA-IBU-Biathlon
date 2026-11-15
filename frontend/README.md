@@ -232,3 +232,16 @@ shot times the intervals and full shot-series duration remain dashes.
 The display of an unconfirmed range exit remains visibly unconfirmed.
 
 This is a frontend-only dev change: the existing b3 HA beta is untouched.
+
+### Fixed 30-position visual range (dev.8)
+
+The full lane board keeps **all 30 numbered positions** in a stable layout,
+even when the venue has only 20 physical lanes. Venue capacity from metadata
+or manual override disables and dims slots above that count. Example: 20
+available physical lanes yields **1–20 normal, 21–30 grey unavailable**.
+A lane without a shooter but within available capacity is **vacant**, not
+unavailable. An incoming observation for a lane beyond configured capacity
+is displayed (not discarded), signalling conflicting source/configuration.
+When no venue information is available, all 30 are possible positions under
+the explicitly marked generic international assumption; little use of lanes
+25–30 in a given race does not make them nonexistent.
