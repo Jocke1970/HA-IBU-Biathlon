@@ -26,7 +26,7 @@ class TestBrowserCapture(unittest.TestCase):
                 "RaceID": "2854", "AthleteID": "278254_2854",
                 "StartNo": 5, "ShootNr": 2, "SumShooted": 5,
                 "Missed": 4, "Prone": False, "Lane": 15,
-                "Target1": {"Hit": False, "ShootTime": "2026-11-15T09:20:14"},
+                "Target1": {"Hit": False, "Shootime": "2026-11-15T09:20:14"},
                 "Target2": {"Hit": True, "ShootTime": "2026-11-15T09:20:18"},
                 "secret_test_field": "must not leak"
             }
@@ -36,6 +36,7 @@ class TestBrowserCapture(unittest.TestCase):
         record = compact_record(*found[0])
         self.assertEqual(record["sum_shooted"], 5)
         self.assertEqual(record["shots"][1]["hit"], True)
+        self.assertEqual(record["shots"][0]["time"], "2026-11-15T09:20:14")
         self.assertNotIn("secret_test_field", json.dumps(record))
 
     def test_unknown_source_is_ignored(self):
