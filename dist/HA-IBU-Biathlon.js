@@ -42,7 +42,7 @@ const en = {
 
 
 
-const VERSION = "2026.11.0b1";
+const VERSION = "2026.11.0b2";
 const type = "custom:ha-ibu-biathlon-card";
 const escapeHtml = (v) => String(v ?? "").replace(/[&<>"']/g, c => (
   {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -89,16 +89,16 @@ const DEMO = {
     shoot_string:"xoxoo",state:"active_unconfirmed",elapsed_on_range_seconds:34.921}]
 };
 const css = `
-  :host {display:block;color:var(--primary-text-color);--biathlon-muted:var(--secondary-text-color)}
+  :host {display:block;width:100%;min-width:0;container-type:inline-size;color:var(--primary-text-color);--biathlon-muted:var(--secondary-text-color)}
   ha-card {padding:16px;overflow:hidden}
   .head,.source-line,.rowline {display:flex;gap:10px;align-items:center;justify-content:space-between}
   .head h2 {font-size:1.12rem;margin:0;font-weight:650}
   .pill {font-size:.65rem;letter-spacing:.04em;padding:4px 9px;border-radius:20px;background:var(--secondary-background-color);font-weight:650}
   .pill.demo {background:var(--warning-color,#d79b25);color:#171717}
   .source-line {margin:10px 0;color:var(--biathlon-muted);font-size:.82rem}
-  .panels {display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:12px}
+  .panels {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
   .panels.stacked,.panels.compact {grid-template-columns:1fr}
-  .panel {min-width:0;border:1px solid var(--divider-color);border-radius:12px;padding:12px}
+  .panel {min-width:0;border:1px solid var(--divider-color);border-radius:12px;padding:16px}
   .panel h3 {margin:0 0 10px;font-size:.91rem}
   .entry {display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px;padding:8px 0;border-top:1px solid var(--divider-color);font-size:.84rem}
   .entry:first-of-type {border-top:0}
@@ -112,7 +112,9 @@ const css = `
   details {margin-top:12px;color:var(--biathlon-muted);font-size:.78rem}
   details summary {cursor:pointer;padding:5px 0}
   .error {padding:14px;text-align:center;color:var(--biathlon-muted)}
-  @media(max-width:650px){.panels{grid-template-columns:1fr}}
+  /* Each panel needs roughly 440px; HA section width, not screen width, decides. */
+  @container (max-width: 959px) {.panels{grid-template-columns:minmax(0,1fr)}}
+  @media(max-width:650px){.panels{grid-template-columns:minmax(0,1fr)}}
 `;
 const defaults = {type,layout:"two_column",clock_display:"both",show_flags:true,
   source_details:"compact",show_version:true,demo:false,replay_url:""};
