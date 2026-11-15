@@ -12,6 +12,7 @@ from pathlib import Path
 from ibu_leaderboard_replay import build_snapshot
 from ibu_signalr_replay import replay_messages
 from ibu_source_provenance import sources_for_snapshot
+from ibu_ui_clocks import clocks_for_ui
 
 
 def joined_state(at, *, merged, event_files, mode="reconstructed", rest_files=None,
@@ -47,8 +48,10 @@ def joined_state(at, *, merged, event_files, mode="reconstructed", rest_files=No
                         for members in board["classes"].values() for row in members),
         has_shooting=range_state["processed_shooting_messages"] > 0,
     )
+    clocks = clocks_for_ui(at, classes, range_state["shooting_range"], sources)
     return {
         "at": at.isoformat(),
+        "clocks": clocks,
         "sources": sources,
         "backend_type": "offline_joined_replay",
         "leaderboard_mode": mode,
@@ -100,6 +103,7 @@ def main():
         "range_rows": len(result["shooting_range"]),
         "range_preview": result["shooting_range"][:3],
         "sources": result["sources"],
+        "clocks": result["clocks"],
         "audit": result["audit"],
     }, ensure_ascii=False, indent=2))
 
