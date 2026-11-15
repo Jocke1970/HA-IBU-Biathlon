@@ -177,7 +177,7 @@ class IbuBiathlonCard extends HTMLElement {
       </div><div>${typeof s.elapsed_on_range_seconds==="number"?escapeHtml(s.elapsed_on_range_seconds.toFixed(1)+" s"):"–"}</div></div>`;
     }).join(""):`<div class="error">${escapeHtml(t.noRange)}</div>`;
     const verified=data?.sources?.results?.live_verified && data?.sources?.shooting?.live_verified && !isDemo;
-    const badge=isDemo?t.demoNotice:verified?t.live:t.replay;
+    const badge=isDemo?t.demoNotice:verified?t.live:data?t.replay:t.noData;
     const detail=`<details ${config.source_details==="expanded"?"open":""}><summary>${escapeHtml(t.source)}</summary>
       <div>${escapeHtml(t.results)}: ${sourceLine("results")} · ${escapeHtml(sources.results?.data_mode||t.unknown)}</div>
       <div>${escapeHtml(t.range)}: ${sourceLine("shooting")} · ${escapeHtml(sources.shooting?.data_mode||t.unknown)}</div>
@@ -193,7 +193,7 @@ class IbuBiathlonCard extends HTMLElement {
     </ha-card>`;
   }
   static getConfigElement(){return document.createElement("ha-ibu-biathlon-card-editor");}
-  static getStubConfig(){return {...defaults,demo:true};}
+  static getStubConfig(){const {type: _type,...stub}=defaults;return {...stub,demo:true};}
 }
 class IbuBiathlonCardEditor extends HTMLElement {
   constructor(){super();this.attachShadow({mode:"open"});}
