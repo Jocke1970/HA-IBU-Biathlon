@@ -5,7 +5,7 @@ Input: original events.jsonl and (optionally) merged athlete_summary.json.
 The capture clock is UTC and is explicitly converted to Europe/Stockholm.
 The observed source InTime/OutTime is provisionally corrected by the given
 hour offset; this offset is NOT assumed to be universal for other providers.
-A snapshot cannot show messages captured after --at. No network calls.
+A snapshot cannot show messages captured after --at. No network calls.\nShooting rows persist until confirmed exit or a subsequent athlete takes the lane.
 """
 import argparse
 from datetime import datetime, timedelta
@@ -65,7 +65,7 @@ def chronological_messages(files):
 
 
 def replay_messages(files, at, metadata=None, offset_hours=1, hold_seconds=15):
-    """Return the shooting range view as it could be known at query time."""
+    """Return occupied lanes as known at query time (no timed after-display)."""
     if at.tzinfo is not None:
         raise ValueError("Query time must be a naive local race clock")
     if hold_seconds < 0:
@@ -108,19 +108,42 @@ def replay_messages(files, at, metadata=None, offset_hours=1, hold_seconds=15):
                     anomalies.setdefault(key, set()).add("late_hour_shift_corrected")
         state[key] = updated
 
+    # Track each lane's newest known occupant across ALL prior arrivals,
+    # including those who have already departed, so an older athlete cannot
+    # reappear after a later occupant checks out.
+    lane_latest = {}
+    for index, (key, raw) in enumerate(state.items()):
+        start = source_clock(raw.get("in_time"), offset_hours)
+        lane = raw.get("lane")
+        if start is None or start > at or type(lane) is not int or not 1 <= lane <= 30:
+            continue
+        lane_key = (key[0], lane)
+        ordering = (start, index)
+        if lane_key not in lane_latest or ordering > lane_latest[lane_key][0]:
+            lane_latest[lane_key] = (ordering, key)
+
     rows = []
     for key, raw in state.items():
+        lane = raw.get("lane")
+        if type(lane) is int and 1 <= lane <= 30:
+            winner = lane_latest.get((key[0], lane))
+            if winner is not None and winner[1] != key:
+                continue
         start = source_clock(raw.get("in_time"), offset_hours)
         end = source_clock(raw.get("out_time"), offset_hours)
         if start is None or start > at:
             continue
-        if end is not None and end >= start:
-            if at >= end + timedelta(seconds=hold_seconds):
-                continue
-            state_label = "recently_finished" if at >= end else "active"
-        else:
-            state_label = "active_unconfirmed"
+        # Keep a lane until its athlete's confirmed departure OR the next
+        # observed athlete takes that same lane. No arbitrary hold timer.
+        if end is not None and end >= start and at >= end:
+            continue
+        if end is not None and end < start:
+            # Discard an impossible end clock rather than claiming departure.
             end = None
+        count = raw.get("sum_shooted")
+        state_label = ("shooting_complete_exit_unconfirmed"
+                       if type(count) is int and count >= 5
+                       else "active_unconfirmed")
         athlete = people.get(key[:2], {})
         # Information from final compiled metadata is allowed only for identity,
         # not for timing, finish status, or results.
@@ -146,7 +169,7 @@ def replay_messages(files, at, metadata=None, offset_hours=1, hold_seconds=15):
         })
     rows.sort(key=lambda x: (x["in_time"], x["bib"] or 99999))
     return {
-        "at": at.isoformat(), "hold_seconds": hold_seconds,
+        "at": at.isoformat(), "retention_policy": "until_confirmed_exit_or_lane_reoccupied",
         "source_offset_hours_provisional": offset_hours,
         "processed_shooting_messages": consumed, "shooting_range": rows,
         "replay_accuracy": "observed_message_arrival_not_true_provider_event_time",
