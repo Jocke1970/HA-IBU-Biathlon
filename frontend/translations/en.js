@@ -1,4 +1,5 @@
 export default {
+ shootingCompleteWaitingExit:"Shooting complete · exit unconfirmed",shootingExitUnknown:"On range · exit unconfirmed",shootingActive:"On range",
  inactiveLane:"Unavailable",
  assumedCapacity:"assumed standard",
  laneCapacity:"Lanes",atLeast:"at least",laneCountUnknown:"Lane count unknown",laneCountOverride:"Venue lanes (0 = default 30, max 30)",
