@@ -1,4 +1,5 @@
 export default {
+ replayFile:"Lokal replay-JSON (/local/...json)", replayLoading:"Läser in replay-data…", replayLoadError:"Kunde inte läsa replay-fil",
  title:"Skidskytte", results:"Resultat", range:"Skjutvallen", source:"Datakälla",
  replay:"REPLAY", live:"LIVE", noData:"Väntar på tävlingsdata",
  offline:"Historisk uppspelning", unknown:"Okänd", event:"Tävlingshändelse",
