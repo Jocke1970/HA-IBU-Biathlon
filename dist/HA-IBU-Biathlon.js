@@ -2,6 +2,7 @@
 (()=>{
 "use strict";
 const sv = {
+ inactiveLane:"Ej tillgänglig",
  assumedCapacity:"antaget standardantal",
  laneCapacity:"Banor",atLeast:"minst",laneCountUnknown:"Antal banor okänt",laneCountOverride:"Arenans banantal (0 = standard 30, max 30)",
  rangeLayout:"Skjutvallsvisning",laneCount:"Antal skjutbanor",emptyLane:"Ledig",rangeIn:"In på vallen",rangeOut:"Ut från vallen",elapsedRange:"Tid hittills på vallen",
@@ -27,6 +28,7 @@ const sv = {
 };
 
 const en = {
+ inactiveLane:"Unavailable",
  assumedCapacity:"assumed standard",
  laneCapacity:"Lanes",atLeast:"at least",laneCountUnknown:"Lane count unknown",laneCountOverride:"Venue lanes (0 = default 30, max 30)",
  rangeLayout:"Shooting range view",laneCount:"Number of lanes",emptyLane:"Vacant",rangeIn:"Range entry",rangeOut:"Range exit",elapsedRange:"Time elapsed on range",
@@ -54,7 +56,7 @@ const en = {
 
 
 
-const VERSION = "2026.11.0-dev.7";
+const VERSION = "2026.11.0-dev.8";
 const type = "custom:ha-ibu-biathlon-card";
 const escapeHtml = (v) => String(v ?? "").replace(/[&<>"']/g, c => (
   {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -127,6 +129,8 @@ const css = `
   .range-board {margin-top:12px}
   .range-row {border-top:1px solid var(--divider-color);padding:10px 0}
   .range-row.empty {padding:5px 0;min-height:16px;opacity:.6}
+  .range-row.unavailable {opacity:.32;background:var(--secondary-background-color);border-radius:5px;padding:5px 8px}
+  .range-row.unavailable .range-athlete {text-decoration:none}
   .range-primary {display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px}
   .range-athlete {font-size:.84rem;min-width:0}
   .range-athlete strong {font-variant-numeric:tabular-nums}
@@ -297,7 +301,8 @@ class IbuBiathlonCard extends HTMLElement {
     })();
     const laneRows=(()=>{
       if(config.range_layout==="occupied")return range.map(s=>({lane:s.lane,shoot:s}));
-      const n=availableLaneCount.count;
+      // Keep 30 stable row positions even at smaller national venues.
+      const n=30;
       const byLane=new Map();
       const unknown=[];
       for(const shoot of range){
@@ -308,16 +313,16 @@ class IbuBiathlonCard extends HTMLElement {
       }
       return [...Array.from({length:n},(_,i)=>{
         const lane=i+1,shoots=byLane.get(lane)||[];
-        return shoots.length?shoots.map(shoot=>({lane,shoot})):[{lane,shoot:null}];
+        return shoots.length?shoots.map(shoot=>({lane,shoot})):[{lane,shoot:null,unavailable:lane>availableLaneCount.count}];
       }).flat(),...unknown];
     })();
     const laneCountLabel=`${t.laneCapacity}: ${availableLaneCount.count}${availableLaneCount.assumed?" ("+t.assumedCapacity+")":""}`;
     const lanes=laneRows.length? `<div class="range-board">
       <div class="minor">${escapeHtml(laneCountLabel)}</div>
-      ${laneRows.map(({lane,shoot:s})=>{
+      ${laneRows.map(({lane,shoot:s,unavailable})=>{
       const laneName=`${t.lane} ${lane==null?"–":lane}`;
-      if(!s)return `<div class="range-row empty"><div class="range-primary">
-        <span class="range-athlete"><strong>${escapeHtml(laneName)}</strong> · ${escapeHtml(t.emptyLane)}</span>
+      if(!s)return `<div class="range-row ${unavailable?"unavailable":"empty"}"><div class="range-primary">
+        <span class="range-athlete"><strong>${escapeHtml(laneName)}</strong> · ${escapeHtml(unavailable?t.inactiveLane:t.emptyLane)}</span>
       </div></div>`;
       const pattern=typeof s.shoot_string==="string"?s.shoot_string.slice(0,5):"";
       const targets=Array.from({length:5},(_,i)=>{
