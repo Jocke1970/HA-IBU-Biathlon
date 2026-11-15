@@ -383,3 +383,28 @@ not evidence the source had no live splits.
 To verify finish, obtain official provider station metadata or another
 independent clearly labeled source. The presence of a valid final-like
 runtime, status code 5, or `FFStatus=False` is not enough on its own.
+
+
+### Verified Idre DNF/DNS result statuses
+
+The November 15 Idre women's result page and the original REST captures
+agree on these athlete-level source codes:
+
+- `101` = **DNF** for Grete Gaim (#23, EST)
+- `102` = **DNS** for Annie Lind (#45, SWE)
+
+These are now preserved in merged `athlete_summary.json`/`.csv` and
+displayed by the checkpoint leaderboard as explicit `status` values,
+instead of `no_verified_passing`. Their source-sentinel runtimes
+(120960000000 and 129600000000 ms) continue to be excluded from
+checkpoint rankings. The mapping is grounded in this Idre capture;
+other status codes are deliberately not guessed. Re-run the offline
+merge before reconstructing the leaderboard so the added status fields
+are available. Existing files are overwritten only in the specified
+merge output directory.
+
+Observed REST replay at 12:08:50 contains **no** REST snapshots because
+all REST recordings were received after that point. The observed
+13:40:00 replay contains both classes: 65 valid women's results plus
+the DNF and DNS, and 78 valid men's results. Those are observations of
+the **recording window**, not proof the provider lacked live data earlier.
