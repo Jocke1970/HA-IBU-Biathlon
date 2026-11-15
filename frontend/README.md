@@ -83,3 +83,35 @@ a separate, explicitly installed HA data bridge or future integration.
 
 Always preserve provider-received timestamps separately from race event
 timestamps. Source-local event clock offset is provisional.
+
+## HACS dashboard distribution (dev validation)
+
+The repository includes `hacs.json` and the generated, self-contained
+`dist/HA-IBU-Biathlon.js`. This is the **dashboard/plugin** packaging
+target, not a Home Assistant custom integration. Source modules remain
+under `frontend/`, and the reproducible build is:
+
+```bash
+node scripts/build-card.cjs
+node scripts/build-card.cjs --check
+node scripts/test-card.cjs
+```
+
+A release-ready dashboard repository must pass both GitHub CI and the
+`hacs/action` plugin validation; it must then receive a beta release
+and be checked inside a running Home Assistant frontend. No backend
+`custom_components/ibu_biathlon/manifest.json` or config flow exists yet.
+Once a genuine HA integration is implemented, packaging and HACS
+repository category must be decided explicitly; a dashboard-only
+`hacs.json` cannot substitute for an integration manifest.
+
+For an official beta HACS test, use the HACS-managed
+`/hacsfiles/HA-IBU-Biathlon/HA-IBU-Biathlon.js` resource URL that HACS
+provides, and do not retain a duplicate manually registered resource.
+The `dist` bundle intentionally contains both language maps inline so
+its HACS install does **not** depend on separately copied
+`frontend/translations/` files.
+
+Current GitHub test validates custom element registration, picker stub,
+editor creation, demo rendering, language selection and HTML escaping.
+It does not emulate the complete Home Assistant browser UI.
