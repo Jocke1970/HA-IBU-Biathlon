@@ -55,6 +55,11 @@ def safe_messages(frame):
         return
 
 
+def target_shot_time(target):
+    """The observed provider field is 'Shootime'; accept alternate spelling too."""
+    return target.get("Shootime") or target.get("ShootTime")
+
+
 def compact_record(payload, race_id):
     """Keep only known public result fields, never arbitrary messages."""
     source = payload["Source"]
@@ -84,7 +89,7 @@ def compact_record(payload, race_id):
         "out_time": obj.get("OutTime"),
         "shots": [
             {"number": n, "hit": obj[f"Target{n}"].get("Hit"),
-             "time": obj[f"Target{n}"].get("ShootTime")}
+             "time": target_shot_time(obj[f"Target{n}"])}
             for n in range(1, 9)
             if isinstance(obj.get(f"Target{n}"), dict)
             and obj[f"Target{n}"].get("ShootTime")
