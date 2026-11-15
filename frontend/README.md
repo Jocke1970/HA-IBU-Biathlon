@@ -54,9 +54,9 @@ entity: sensor.ibu_biathlon_livetiming
 demo: false
 ```
 
-This prototype does **not** automatically import local Python replay files
-into HA and does not yet register that sensor. Real-data testing requires
-a separate, explicitly installed HA data bridge or future integration.
+This prototype does **not** register that sensor. For beta UI testing,
+the alternative `replay_url` loads a static offline JSON file from HA's
+`/config/www/` (served as `/local/`) without creating entities.
 
 ## What works in this first prototype
 
@@ -115,3 +115,54 @@ its HACS install does **not** depend on separately copied
 Current GitHub test validates custom element registration, picker stub,
 editor creation, demo rendering, language selection and HTML escaping.
 It does not emulate the complete Home Assistant browser UI.
+
+## Static Idre replay into HA (beta test, no backend integration)
+
+This is an **offline fixture**, not a live REST/SignalR adapter.
+On the Linux Mint development machine, after producing a combined JSON:
+
+```bash
+python tools/ibu_combined_replay.py \
+  --mode reconstructed \
+  --merged captures/merged_idre_timeline/athlete_summary.json \
+  --events captures/browser_20261115_120008/events.jsonl \
+  --at 2026-11-15T12:08:50 \
+  --out captures/merged_idre_timeline/combined_120850.json
+
+python tools/ibu_export_ha_fixture.py \
+  --input captures/merged_idre_timeline/combined_120850.json \
+  --out exports/idre_120850.json
+```
+
+Copy `exports/idre_120850.json` to the future test HA installation's
+`/config/www/ibu/idre_120850.json` using your existing HA file access.
+Do not guess HA hostnames, tokens or SSH connectivity. The URL in a
+Home Assistant browser should then be
+`/local/ibu/idre_120850.json`.
+
+Set the **visual editor** field `Local replay JSON` to that URL, or
+configure:
+
+```yaml
+type: custom:ha-ibu-biathlon-card
+replay_url: /local/ibu/idre_120850.json
+class_id: "36810_2854"
+demo: false
+```
+
+Keep the fixture away from private/sensitive information: files under
+`/config/www/` can be served to clients as static resources, unlike
+private backend entity state. This capture contains public sports
+timing data only; do not put HA secrets into the JSON.
+
+The card only fetches local `/local/...json` paths and labels the
+output REPLAY, never LIVE. A URL change requests a new JSON file.
+The `v=` query string is supported for explicit cache busting, but
+no automatic polling is implemented. A 404/invalid JSON yields an
+explicit error in the card instead of fake data. Editor/demo mode
+overrides a replay URL. The static fixture also does not advance time
+automatically.
+
+The `replay_url` mode is intentionally a test bridge; it is not the
+final HA integration architecture. Complete the beta release before
+installing the dashboard module into HA.
