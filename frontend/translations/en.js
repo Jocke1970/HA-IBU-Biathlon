@@ -1,4 +1,7 @@
 export default {
+ rank:"Pos.", currentLap:"Lap", latestSplit:"Latest section", stationOnly:"Rank and gap apply only at the same checkpoint", lapUnavailable:"Lap boundaries not mapped yet",
+ shootNumber:"Shoot",rangeTime:"Range time",seriesTime:"Shot-series time",shotIntervals:"Between shots",rangeTimeCaveat:"* Elapsed range time so far; not final",miss:"Miss",hit:"Hit",
+ competitionName:"Competition", competitionCity:"City", competitionCountry:"Country", segmentHistory:"Passings / section times",
  replayFile:"Local replay JSON (/local/...json)", replayLoading:"Loading replay data…", replayLoadError:"Could not load replay file",
  title:"Biathlon", results:"Results", range:"Shooting range", source:"Data source",
  replay:"REPLAY", live:"LIVE", noData:"Waiting for competition data",
