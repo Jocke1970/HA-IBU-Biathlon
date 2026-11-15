@@ -207,3 +207,22 @@ new release passes CI and HA testing.
   presented as completed range duration. Shot series timing is
   withheld unless five actual individual timestamps are available.
 - This is a `dev` prototype until code tests and a real HA beta test.
+
+## b4 shooting-range board prototype (dev)
+
+The board displays the physical range, not a chronological list of notifications.
+`range_layout: lane_board` (default) fixes empty and occupied rows to their
+actual lane numbers, 1 through `lane_count` (default 30, max 60). A missing
+or out-of-range lane is kept separately, never assigned a fabricated one.
+`range_layout: occupied` displays only captured occupied/recently finished
+lanes, suitable for a compact dashboard.
+
+Within each lane, the athlete and five targets share the top row. The second
+row shows **arrival timestamp | verified shot-to-shot intervals | departure
+timestamp**, using the source-local `in_time`, `shots_with_timestamps`, and
+`out_time` fields. These are shown as local wall-clock values only; their
+timezone remains unverified. If the provider has not supplied five trustworthy
+shot times the intervals and full shot-series duration remain dashes.
+The display of an unconfirmed range exit remains visibly unconfirmed.
+
+This is a frontend-only dev change: the existing b3 HA beta is untouched.
