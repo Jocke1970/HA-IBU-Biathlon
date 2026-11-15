@@ -67,3 +67,19 @@ python -m unittest discover -s tools -p 'test_signalr_offline.py'
 ```
 
 Outputs are saved under `captures/decoded/`: `messages.jsonl`, `shooting_summary.json` and `shots.csv`. Multiple snapshots of one athlete's shooting can be compared using `AthleteID` and `ShootNr`. Not every SignalR event has shooting data; fields and `Source` meanings remain provisional. **Do not commit captured frames or outputs.** This tool does not capture live network traffic; automated access is a separate unresolved permissions issue.
+
+## Browser-side SignalR capture (experimental)
+
+The supervised recorder observes incoming WebSocket messages in a **separate Brave window**; it does not use the API key, call timing APIs, or open an independent SignalR session. It only records Source 4 shooting updates and Source 203 race-change notifications. It doesn't store cookies, request headers, or WebSocket connection URLs. Only use on events and services you are permitted to access.
+
+```bash
+cd ~/IBU-Biathlon
+source .venv/bin/activate
+python -m pip install playwright msgpack
+curl -fL -o signalr_browser_capture.py https://raw.githubusercontent.com/Jocke1970/HA-IBU-Biathlon/main/tools/signalr_browser_capture.py
+python signalr_browser_capture.py --race 2854
+```
+
+In the newly opened browser window, navigate manually to the public CCResult event, then keep that window open while collecting. Use **Ctrl+C** in the terminal to stop. Captures are saved in `captures/browser_YYYYMMDD_HHMMSS/events.jsonl`. A session started after the event has finished will not magically replay the live events. The browser is an isolated, temporary session, not your everyday Brave profile. This captures only events that arrive while the recording session is open; it may miss updates during disconnects.
+
+This is **not** a standalone API client and its end-to-end live behavior is not yet verified. Message formats and permissions may change. Don't commit captures, profile data, or credentials.
