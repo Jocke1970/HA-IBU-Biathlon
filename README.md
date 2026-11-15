@@ -466,3 +466,39 @@ editor is built.
 ```bash
 python -m unittest -v test_ibu_source_provenance test_ibu_combined_replay
 ```
+
+
+### UI clock contract and visual editor configuration (dev only)
+
+`tools/ibu_ui_clocks.py` now builds `clocks` in the combined JSON output.
+For each of **results** and **shooting** it separates:
+
+- `latest_event.value_local`: the latest *visible* checkpoint pass or
+  range in/out event, using the source's event clock. An event value from
+  the future is not exposed. For shooting this covers the current
+  displayed range rows only, not all historical shooting records.
+- `latest_receipt.value_local`: latest recorded REST or SignalR
+  receipt on or before the replay clock (from offset-aware
+  `captured_utc`). It may legitimately be null when reconstructing
+  an earlier checkpoint from final result files.
+- `source_timezone_verified`: `false` for source-local event clock
+  under provisional normalization and `true` for capture receipt
+  conversion through Europe/Stockholm.
+
+An athlete's finish/event time and the time a browser observed the
+provider's update are different facts. Do not call a reconstructed
+event a live update or show a fallback receipt clock without a real
+capture. The snapshot itself has an independent `replay_clock`.
+
+`frontend/card_config.schema.json` defines **planned** frontend-editor
+configuration: layout, class, clock display (`event`/`receipt`/`both`),
+timezone display, source preference, source details, range mode/sorting,
+hold time, flags, and version info. It is a specification only:
+there is no JS custom card or HA visual editor implemented yet.
+Minimum source attribution is mandatory even if the detail panel
+is collapsed. Changing source preference must never invent IBU
+connectivity.
+
+```bash
+python -m unittest -v test_ibu_ui_clocks test_ibu_combined_replay
+```
