@@ -144,6 +144,32 @@ class LeaderboardTests(unittest.TestCase):
         self.assertEqual(len(result["checkpoint_groups"]), 3)
         self.assertEqual(result["classes"]["women"][0]["last_checkpoint"]["checkpoint_position"], 1)
 
+    def test_reconstructed_checkpoint_sections_are_real_deltas(self):
+        merged = self.save("sections.json", [{
+            "race_id": "2854", "class_id": "men", "athlete_id": "a",
+            "bib": 101, "name": "A", "nation": "SWE",
+            "checkpoints": [
+                {"intermediate_id": "cp1", "ipos": "1", "runtime_ms": 120000,
+                 "pass_time": "2026-11-15T12:02:00"},
+                {"intermediate_id": "cp2", "ipos": "2", "runtime_ms": 263500,
+                 "pass_time": "2026-11-15T12:04:23"},
+                {"intermediate_id": "cp3", "ipos": "3", "runtime_ms": 420000,
+                 "pass_time": "2026-11-15T12:07:00"},
+            ],
+        }])
+        early = build_snapshot("reconstructed", datetime.fromisoformat("2026-11-15T12:05:00"),
+                               merged_path=merged)
+        h = early["classes"]["men"][0]["checkpoint_history"]
+        self.assertEqual(len(h), 2)
+        self.assertIsNone(h[0]["segment_ms"])
+        self.assertEqual(h[1]["segment_ms"], 143500)
+        self.assertEqual(h[1]["segment_from_station"], "cp1")
+        self.assertEqual(h[1]["elapsed_ms"], 263500)
+        late = build_snapshot("reconstructed", datetime.fromisoformat("2026-11-15T12:08:00"),
+                              merged_path=merged)
+        self.assertEqual(late["classes"]["men"][0]["checkpoint_history"][-1]["segment_ms"],
+                         156500)
+
     def test_reconstructed_no_future_passings_and_ties(self):
         merged = self.save("merged.json", [
             {"race_id": "1", "athlete_id": "a", "class_id": "men", "bib": 1,
