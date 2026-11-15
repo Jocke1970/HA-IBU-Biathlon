@@ -124,11 +124,16 @@ def main():
         with outfile.open("a", encoding="utf-8") as out:
             def on_page(page):
                 def on_ws(ws):
-                    # Only consider incoming frames from the known public timing host.
+                    # Show only the hostname, never full URL/query (may contain tokens).
                     from urllib.parse import urlsplit
-                    if urlsplit(ws.url).hostname != "live.api.nsftiming.no":
+                    host = (urlsplit(ws.url).hostname or "").lower()
+                    print(f"WebSocket detected on host: {host or '(unknown)'}", flush=True)
+                    # Allow known result-provider domains; ignore unrelated sites.
+                    if not (host == "ccresult.com" or host.endswith(".ccresult.com")
+                            or host == "nsftiming.no" or host.endswith(".nsftiming.no")):
+                        print("Ignored unrelated WebSocket host.", flush=True)
                         return
-                    print("Timing WebSocket connected (address withheld).")
+                    print("Timing WebSocket connected (address withheld).", flush=True)
 
                     def received(frame):
                         stats["received"] += 1
