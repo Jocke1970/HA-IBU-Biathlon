@@ -50,3 +50,36 @@ python tools/ibu_shot_time_audit.py \
 For decoded raw frames, add a `messages.jsonl` path to the same
 command to compare actual target field keys, not just compact events.
 No network requests are performed.
+
+## First priority: raw SignalR Source 4 field probe
+
+The original Idre browser capture is compact: it cannot reveal whether
+raw `TargetN` objects contained null or absent values. For the next
+**public competition that generates shooting updates**, use the
+supervised existing browser recorder with the additional flag:
+
+```bash
+python tools/signalr_browser_capture.py --probe-targets
+```
+
+In the isolated Brave window opened by the script, navigate to the
+public CCResult livetiming page and let one shooting series progress
+through several shots. Press Ctrl+C in the terminal to stop.
+
+The existing `events.jsonl` is captured in its normal compact format.
+Additionally, `source4_target_probe.json` summarizes **raw** Source 4
+Target1–Target8 field presence, populated values and Python value
+types *before compaction*. This report includes **no per-athlete IDs,
+actual timestamps, tokens, cookies, URLs or raw frames**. An empty
+or all-zero probe simply means the monitored page did not deliver
+Source 4 shooting messages during this session.
+
+If `target_field_populated.Shootime` or `ShootTime` is positive,
+we have evidence of real individual shot-time values in that stream.
+`ShootRunTime` being populated would still require unit/meaning
+verification. **Do not infer shot intervals from WebSocket arrival
+intervals**.
+
+Run this on the Linux Mint development machine, not Home Assistant.
+This probe is diagnostic, does not need a beta deployment, and does
+not alter existing captures.
