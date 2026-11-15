@@ -164,3 +164,25 @@ Replace only the one registered HA JS file with the contents of
 `dist/HA-IBU-Biathlon.js`. The current `replay_url`, local JSON file,
 Lovelace resource URL and overall dashboard configuration remain unchanged.
 No extra translation modules or resources are required.
+
+## b5 – HA visual check: range header, vacant lanes, retained targets
+
+Version `2026.11.0b5`, one bundled JS resource only.
+
+- Vacant (available) lanes use a subtle green strip with legible primary
+  text and bold lane number. Unavailable lanes remain grey.
+- Removes the redundant capacity summary `Banor: 30` from the card.
+- Range panel title is larger, bold, primary-text colored; event/receipt
+  timestamps align to the right on the same heading row.
+- Shooting-complete targets remain on the lane until a confirmed range
+  departure **or** the next athlete arrives on that same lane, whichever
+  occurs first. No fixed time-based expiration. Missing departure remains
+  explicitly unconfirmed; no assumption of current physical presence.
+- Internal range status values are localized in both Swedish and English.
+
+**Test notes:** Upgrading the existing standalone JS bundle will verify the
+visual changes using the existing `/local/ibu/idre_120850.json`. That
+snapshot is static and cannot test the changed **backend event retention**
+without rebuilding a replay for later timestamps. The backend rule is
+covered by the offline tests. Keep the old JSON and one registered resource
+for this visual smoke test; do not copy source translation files.
