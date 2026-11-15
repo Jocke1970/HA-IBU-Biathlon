@@ -356,3 +356,30 @@ this hybrid as actual historic live state. Use observed mode with REST
 capture files when validating what the browser had truly received.
 No beta release until both class mappings and receipt-time replay have
 been checked against real files.
+
+
+### REST coverage / finish evidence audit (dev only)
+
+The Idre REST recordings were captured **after** the men's sample replay
+clock. A reconstructed checkpoint at 12:08:50 does **not** mean a
+browser observer had received that REST response at 12:08:50.
+Run the capture coverage audit to inspect receipt windows, captured
+station IDs, athlete status-code distributions and `FFStatus`
+without assigning undocumented meanings to either field:
+
+```bash
+python tools/ibu_rest_coverage_audit.py \
+  --rest captures/rest_*/rest_snapshots.jsonl \
+  --out captures/merged_idre_both/rest_coverage_audit.json
+
+python -m unittest -v test_ibu_rest_coverage_audit
+```
+
+An observed-mode check before the first recorded response should
+contain no checkpoint observations; the recorded SignalR shooting may
+still have messages at that time. This is a limitation of the recording,
+not evidence the source had no live splits.
+
+To verify finish, obtain official provider station metadata or another
+independent clearly labeled source. The presence of a valid final-like
+runtime, status code 5, or `FFStatus=False` is not enough on its own.
