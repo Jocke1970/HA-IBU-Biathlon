@@ -46,3 +46,12 @@ jobs:
           assert (Path("LICENSE")).is_file()
           print("Dashboard dist structure: OK")
           PY
+
+  hacs-dashboard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate HACS dashboard repository
+        uses: hacs/action@main
+        with:
+          category: plugin
