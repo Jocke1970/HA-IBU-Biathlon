@@ -47,6 +47,13 @@ assert.match(card.shadowRoot.innerHTML,/Axel Mannelqvist/);
 assert.match(card.shadowRoot.innerHTML,/Skottserietid/);
 assert.match(card.shadowRoot.innerHTML,/Senaste sträcka/);
 assert.match(card.shadowRoot.innerHTML,/range-board/);
+assert.match(card.shadowRoot.innerHTML,/shooting-unconfirmed/);
+assert.match(card.shadowRoot.innerHTML,/range-activity/);
+assert.match(card.shadowRoot.innerHTML,/prefers-reduced-motion:reduce/);
+assert.match(card.shadowRoot.innerHTML,/s\.shooting_presence_confirmed===true/);
+assert.match(card.shadowRoot.innerHTML,/range-row shooting-unconfirmed/);
+assert.doesNotMatch(card.shadowRoot.innerHTML,/<div class="range-row shooting-live">/);
+
 assert.match(card.shadowRoot.innerHTML,/Bana 3/);
 assert.match(card.shadowRoot.innerHTML,/In på vallen/);
 assert.match(card.shadowRoot.innerHTML,/Ut från vallen/);
