@@ -125,7 +125,7 @@ def main():
         line = line.strip()
         if not line or line.startswith("#"):
             continue
-        compact = re.sub(r"\\s+", "", line)
+        compact = re.sub(r"\s+", "", line)
         try:
             if len(compact) % 2 or not re.fullmatch(r"[a-fA-F0-9]+", compact):
                 raise ValueError("Not a valid hex string")
@@ -137,7 +137,7 @@ def main():
     summary, events = process(messages)
     with (output / "messages.jsonl").open("w", encoding="utf-8") as f:
         for message in messages:
-            f.write(json.dumps(message, ensure_ascii=False) + "\\n")
+            f.write(json.dumps(message, ensure_ascii=False) + "\n")
     (output / "shooting_summary.json").write_text(
         json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8"
     )
