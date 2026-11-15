@@ -1,4 +1,5 @@
 export default {
+ shootingCompleteWaitingExit:"Skjutning klar · utpassering ej bekräftad",shootingExitUnknown:"På vallen · utpassering ej bekräftad",shootingActive:"På vallen",
  inactiveLane:"Ej tillgänglig",
  assumedCapacity:"antaget standardantal",
  laneCapacity:"Banor",atLeast:"minst",laneCountUnknown:"Antal banor okänt",laneCountOverride:"Arenans banantal (0 = standard 30, max 30)",
