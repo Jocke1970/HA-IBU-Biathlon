@@ -1,7 +1,7 @@
 import sv from "./translations/sv.js";
 import en from "./translations/en.js";
 
-const VERSION = "2026.11.0-dev.6";
+const VERSION = "2026.11.0-dev.7";
 const type = "custom:ha-ibu-biathlon-card";
 const escapeHtml = (v) => String(v ?? "").replace(/[&<>"']/g, c => (
   {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -233,17 +233,14 @@ class IbuBiathlonCard extends HTMLElement {
       // Only trusted structured metadata counts as confirmed physical capacity.
       const supplied=data?.range_metadata?.lane_count??data?.race?.shooting_lanes;
       const suppliedNumber=Number(supplied);
-      const confirmed=Number.isInteger(suppliedNumber)&&suppliedNumber>0&&suppliedNumber<=60
+      const confirmed=Number.isInteger(suppliedNumber)&&suppliedNumber>0&&suppliedNumber<=30
         ?suppliedNumber:null;
-      const observed=Math.max(0,...range.map(x=>{
-        const lane=Number(x.lane);
-        return Number.isInteger(lane)&&lane>0&&lane<=60?lane:0;
-      }));
       const override=Number(config.lane_count);
-      const manual=Number.isInteger(override)&&override>0&&override<=60?override:null;
-      const chosen=manual??confirmed??observed;
-      return {count:Math.max(0,chosen),confirmed:manual!==null||confirmed!==null,
-        manual:manual!==null,observed};
+      const manual=Number.isInteger(override)&&override>0&&override<=30?override:null;
+      // Generic international range assumption, not a source-verified venue fact.
+      const count=manual??confirmed??30;
+      return {count,confirmed:manual!==null||confirmed!==null,
+        assumed:manual===null&&confirmed===null};
     })();
     const laneRows=(()=>{
       if(config.range_layout==="occupied")return range.map(s=>({lane:s.lane,shoot:s}));
@@ -261,9 +258,7 @@ class IbuBiathlonCard extends HTMLElement {
         return shoots.length?shoots.map(shoot=>({lane,shoot})):[{lane,shoot:null}];
       }).flat(),...unknown];
     })();
-    const laneCountLabel=availableLaneCount.count>0
-      ?`${t.laneCapacity}: ${availableLaneCount.confirmed?"":t.atLeast+" "}${availableLaneCount.count}`
-      :t.laneCountUnknown;
+    const laneCountLabel=`${t.laneCapacity}: ${availableLaneCount.count}${availableLaneCount.assumed?" ("+t.assumedCapacity+")":""}`;
     const lanes=laneRows.length? `<div class="range-board">
       <div class="minor">${escapeHtml(laneCountLabel)}</div>
       ${laneRows.map(({lane,shoot:s})=>{
