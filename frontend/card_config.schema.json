@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HA-IBU-Biathlon card editor configuration (planned)",
+  "description": "Configuration contract for a future visual editor. Not yet a registered Home Assistant frontend card.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "type": {
+      "const": "custom:ha-ibu-biathlon-card"
+    },
+    "entity": {
+      "type": "string",
+      "description": "Future Home Assistant combined livetiming sensor."
+    },
+    "class_id": {
+      "type": "string",
+      "description": "Explicit race class identifier; no cross-class sorting."
+    },
+    "layout": {
+      "enum": [
+        "two_column",
+        "stacked",
+        "compact"
+      ],
+      "default": "two_column"
+    },
+    "source_preference": {
+      "enum": [
+        "automatic",
+        "ccresult",
+        "ibu"
+      ],
+      "default": "automatic",
+      "description": "Preference only: never implies a provider is connected."
+    },
+    "source_details": {
+      "enum": [
+        "compact",
+        "expanded"
+      ],
+      "default": "compact"
+    },
+    "clock_display": {
+      "enum": [
+        "event",
+        "receipt",
+        "both"
+      ],
+      "default": "both"
+    },
+    "timezone_display": {
+      "enum": [
+        "home_assistant",
+        "utc"
+      ],
+      "default": "home_assistant"
+    },
+    "range_mode": {
+      "enum": [
+        "active",
+        "all_lanes"
+      ],
+      "default": "active"
+    },
+    "range_sort": {
+      "enum": [
+        "arrival",
+        "lane"
+      ],
+      "default": "arrival"
+    },
+    "finished_hold_seconds": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 120,
+      "default": 15
+    },
+    "result_sort": {
+      "enum": [
+        "bib",
+        "checkpoint_rank"
+      ],
+      "default": "bib",
+      "description": "checkpoint_rank applies only inside same station grouping."
+    },
+    "show_flags": {
+      "type": "boolean",
+      "default": true
+    },
+    "show_source_badge": {
+      "const": true,
+      "description": "Never allow disabling minimal visible source attribution."
+    },
+    "show_version": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "type"
+  ]
+}
