@@ -1,0 +1,17 @@
+export default {
+ title:"Biathlon", results:"Results", range:"Shooting range", source:"Data source",
+ replay:"REPLAY", live:"LIVE", noData:"Waiting for competition data",
+ offline:"Historical replay", unknown:"Unknown", event:"Race event",
+ receipt:"Data received", status:"Status", noRange:"No athletes on the range",
+ settings:"Card settings", entity:"Entity (with livetiming attribute)",
+ layout:"Layout", classId:"Class ID", timeMode:"Show times",
+ showFlags:"Show national flags", showVersion:"Show version",
+ demo:"Demo mode (without backend)", sourceDetails:"Show source details",
+ shots:"shots", misses:"misses", lane:"Lane", checkpoint:"Checkpoint",
+ athlete:"Athlete", elapsed:"Time", gap:"Behind", unknownStatus:"No verified passings",
+ compact:"Compact", stacked:"Stacked", twoColumn:"Two columns",
+ both:"Both", onlyEvent:"Event", onlyReceipt:"Receipt",
+ noVerifiedRanking:"Rank applies only within the same checkpoint",
+ demoNotice:"DEMO – sample data, not live", version:"Version", noUpdate:"No recorded receipt",
+ sourceUnverified:"Source timezone not yet verified",
+};
