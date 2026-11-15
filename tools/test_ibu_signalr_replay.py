@@ -99,12 +99,12 @@ class SignalrReplayTests(unittest.TestCase):
         self.assertEqual(self.view("12:08:41")["shooting_range"], [])
 
     def test_late_hour_shift_preserves_clocks(self):
-        original = self.record("11:08:32", 5, pattern="ooooo", out="2026-11-15T11:08:30")
+        original = self.record("11:08:32", 5, pattern="ooooo", out="2026-11-15T11:08:40")
         shifted = self.record("11:08:33", 5, pattern="ooooo",
-                              out="2026-11-15T10:08:30",
+                              out="2026-11-15T10:08:40",
                               start="2026-11-15T10:08:00")
         self.save([original, shifted])
-        row = self.view("12:08:29")["shooting_range"][0]
+        row = self.view("12:08:34")["shooting_range"][0]
         self.assertIsNone(row["out_time"])
         self.assertIn("late_hour_shift_corrected", row["anomalies"])
 
