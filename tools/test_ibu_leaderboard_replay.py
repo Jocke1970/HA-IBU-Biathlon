@@ -70,6 +70,29 @@ class LeaderboardTests(unittest.TestCase):
         self.assertEqual(len(state["checkpoint_groups"]), 1)
         self.assertEqual(next(iter(state["checkpoint_groups"].values()))["comparable_athletes"], 1)
 
+    def test_idre_dnf_dns_never_receive_elapsed_rank(self):
+        rows = [
+            self.athlete("grete", "women", 23, 120960000000, "finish"),
+            self.athlete("annie", "women", 45, 129600000000, "finish"),
+            self.athlete("finisher", "women", 38, 2000000, "finish"),
+        ]
+        rows[0]["Status"] = 101
+        rows[1]["Status"] = 102
+        rows[2]["Status"] = 5
+        frame = {"endpoint": "results", "race_id": "2854",
+                 "class_id": "women", "ipos": "18",
+                 "captured_utc": "2026-11-15T11:40:00+00:00",
+                 "payload": {"Data": rows}}
+        path = self.snapshots([frame])
+        snapshot = build_snapshot("observed",
+                                  datetime.fromisoformat("2026-11-15T13:40:00"), [path])
+        by_id = {x["athlete_id"]: x for x in snapshot["classes"]["women"]}
+        self.assertEqual(by_id["grete"]["status"], "DNF")
+        self.assertEqual(by_id["annie"]["status"], "DNS")
+        self.assertIsNone(by_id["grete"]["last_checkpoint"])
+        self.assertIsNone(by_id["annie"]["last_checkpoint"])
+        self.assertEqual(by_id["finisher"]["last_checkpoint"]["checkpoint_position"], 1)
+
     def test_rank_only_among_same_class_and_station(self):
         def a(id, cls, bib, station, elapsed):
             return {"race_id": "2854", "athlete_id": id, "class_id": cls,
