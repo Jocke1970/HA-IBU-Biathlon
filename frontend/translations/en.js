@@ -1,4 +1,5 @@
 export default {
+ laneCapacity:"Lanes",atLeast:"at least",laneCountUnknown:"Lane count unknown",laneCountOverride:"Lane count (0 = automatic)",
  rangeLayout:"Shooting range view",laneCount:"Number of lanes",emptyLane:"Vacant",rangeIn:"Range entry",rangeOut:"Range exit",elapsedRange:"Time elapsed on range",
  rank:"Pos.", currentLap:"Lap", latestSplit:"Latest section", stationOnly:"Rank and gap apply only at the same checkpoint", lapUnavailable:"Lap boundaries not mapped yet",
  shootNumber:"Shoot",rangeTime:"Range time",seriesTime:"Shot-series time",shotIntervals:"Between shots",rangeTimeCaveat:"* Elapsed range time so far; not final",miss:"Miss",hit:"Hit",
