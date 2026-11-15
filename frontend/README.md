@@ -212,8 +212,14 @@ new release passes CI and HA testing.
 
 The board displays the physical range, not a chronological list of notifications.
 `range_layout: lane_board` (default) fixes empty and occupied rows to their
-actual lane numbers, 1 through `lane_count` (default 30, max 60). A missing
-or out-of-range lane is kept separately, never assigned a fabricated one.
+actual lane numbers. Capacity follows a verified `range_metadata.lane_count`
+or `race.shooting_lanes` value when provided; otherwise it expands up to the
+highest currently observed lane and labels that capacity **at least N**.
+The manual `lane_count` (default 0 = auto, max 60) overrides both as a
+fallback, but this is then a configured rather than independently verified
+physical range size. A missing or out-of-range lane is never assigned a
+fabricated lane. Until provider metadata is found, a replay snapshot with
+only lane 3 cannot establish whether the venue has 3, 20, or 30 lanes.
 `range_layout: occupied` displays only captured occupied/recently finished
 lanes, suitable for a compact dashboard.
 
