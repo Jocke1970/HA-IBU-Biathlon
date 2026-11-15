@@ -1,7 +1,7 @@
 import sv from "./translations/sv.js";
 import en from "./translations/en.js";
 
-const VERSION = "2026.11.0b2";
+const VERSION = "2026.11.0b3";
 const type = "custom:ha-ibu-biathlon-card";
 const escapeHtml = (v) => String(v ?? "").replace(/[&<>"']/g, c => (
   {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -52,6 +52,8 @@ const css = `
   ha-card {padding:16px;overflow:hidden}
   .head,.source-line,.rowline {display:flex;gap:10px;align-items:center;justify-content:space-between}
   .head h2 {font-size:1.12rem;margin:0;font-weight:650}
+  .event-location {margin:4px 0 0;font-size:.8rem;color:var(--biathlon-muted)}
+  .segment-detail {margin:5px 0 0;color:var(--biathlon-muted);font-size:.69rem}
   .pill {font-size:.65rem;letter-spacing:.04em;padding:4px 9px;border-radius:20px;background:var(--secondary-background-color);font-weight:650}
   .pill.demo {background:var(--warning-color,#d79b25);color:#171717}
   .source-line {margin:10px 0;color:var(--biathlon-muted);font-size:.82rem}
@@ -61,6 +63,25 @@ const css = `
   .panel h3 {margin:0 0 10px;font-size:.91rem}
   .entry {display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px;padding:8px 0;border-top:1px solid var(--divider-color);font-size:.84rem}
   .entry:first-of-type {border-top:0}
+  .result-scroll {overflow-x:auto;margin-top:12px}
+  .results-table {width:100%;border-collapse:collapse;min-width:490px;font-size:.8rem}
+  .results-table th {font-size:.69rem;color:var(--biathlon-muted);font-weight:600;text-align:left;white-space:nowrap;padding:9px 7px;border-bottom:1px solid var(--divider-color)}
+  .results-table td {padding:10px 7px;border-bottom:1px solid var(--divider-color);vertical-align:middle}
+  .results-table .num {font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+  .results-table .athlete {min-width:140px}
+  .results-table .athlete small {display:block;color:var(--biathlon-muted);margin-top:3px}
+  .results-table .same-station {font-weight:650}
+  .range-row {border-top:1px solid var(--divider-color);padding:12px 0}
+  .range-row:first-of-type {margin-top:12px}
+  .range-head {display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:.84rem}
+  .range-body {display:grid;grid-template-columns:minmax(160px,1fr) auto;gap:16px;align-items:end;margin-top:10px}
+  .range-times {display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:14px;row-gap:5px;font-size:.77rem}
+  .range-times .value {text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .range-times .key {color:var(--biathlon-muted)}
+  .range-targets {display:flex;flex-direction:column;align-items:flex-end;justify-content:end;gap:4px}
+  .range-targets .targets {margin:0;gap:7px}
+  .range-targets .minor {font-size:.7rem;text-align:right}
+  @media(max-width:480px){.range-body{grid-template-columns:1fr}.range-targets{justify-self:end}}
   .minor,.clock,.notice {font-size:.73rem;color:var(--biathlon-muted)}
   .notice {margin-top:10px}
   .shooting {margin:8px 0}
@@ -76,7 +97,8 @@ const css = `
   @media(max-width:650px){.panels{grid-template-columns:minmax(0,1fr)}}
 `;
 const defaults = {type,layout:"two_column",clock_display:"both",show_flags:true,
-  source_details:"compact",show_version:true,demo:false,replay_url:""};
+  source_details:"compact",show_version:true,demo:false,replay_url:"",
+  competition_name:"",competition_city:"",competition_country:""};
 const validReplayUrl = url => typeof url === "string" &&
   /^\/local\/[a-zA-Z0-9/_-]+\.json(?:\?v=[a-zA-Z0-9._-]+)?$/.test(url);
 
@@ -161,24 +183,76 @@ class IbuBiathlonCard extends HTMLElement {
       return `<div class="clock">${parts.map(escapeHtml).join(" · ")}</div>`;
     };
     const sourceLine=(side)=>escapeHtml(sources[side]?.provider_name||t.unknown);
-    const results=people.length ? people.map(p=>{
-      const cp=p.last_checkpoint;
-      const status=p.display_status||p.status||t.unknownStatus;
-      const pos=cp?.checkpoint_position!=null?`#${cp.checkpoint_position} · `:"";
-      return `<div class="entry"><div>
-        <div>${config.show_flags?flag(p.nation)+" ":""}<strong>${escapeHtml(p.bib??"–")}</strong> ${escapeHtml(p.name||t.unknown)}</div>
-        <div class="minor">${escapeHtml(cp?`${t.checkpoint} ${cp.ipos} · ${pos}${status}`:status)}</div>
-      </div><div>${escapeHtml(cp?elapsed(cp.elapsed_ms):"–")}</div></div>`;
-    }).join(""):`<div class="error">${escapeHtml(t.noData)}</div>`;
+    const results=people.length ? `<div class="result-scroll"><table class="results-table">
+      <thead><tr><th>${escapeHtml(t.rank)}</th><th>${escapeHtml(t.athlete)}</th>
+      <th>${escapeHtml(t.currentLap)}</th><th>${escapeHtml(t.latestSplit)}</th>
+      <th class="num">${escapeHtml(t.elapsed)}</th><th class="num">${escapeHtml(t.gap)}</th></tr></thead>
+      <tbody>${people.map(p=>{
+        const cp=p.last_checkpoint;
+        const status=p.display_status||p.status||t.unknownStatus;
+        const position=cp?.checkpoint_position!=null?`#${cp.checkpoint_position}`:"–";
+        const sameStation=cp?.position_scope==="same_class_and_checkpoint_only"||cp?.checkpoint_position!=null;
+        const gap=typeof cp?.checkpoint_diff_ms==="number"
+          ?(cp.checkpoint_diff_ms===0?"±0,0":`+${elapsed(cp.checkpoint_diff_ms)}`):"–";
+        const history=Array.isArray(p.checkpoint_history)?p.checkpoint_history:[];
+        const latestSegment=[...history].reverse().find(x=>typeof x.segment_ms==="number" && x.segment_ms>0);
+        const currentLap=Number.isInteger(p.current_lap) && p.current_lap>0
+          ?p.current_lap:"–";
+        const currentSplit=latestSegment
+          ?`${t.checkpoint} ${latestSegment.ipos||latestSegment.station_id||"?"} · ${elapsed(latestSegment.segment_ms)}`
+          :cp?.ipos?`${t.checkpoint} ${cp.ipos}`:"–";
+        const segments=history.filter(x=>typeof x.segment_ms==="number" && x.segment_ms>0)
+          .slice(-3).map(x=>`${escapeHtml(x.ipos||x.station_id||"?")}: ${escapeHtml(elapsed(x.segment_ms))}`).join(" · ");
+        return `<tr><td class="num ${sameStation?"same-station":""}"
+          title="${escapeHtml(t.stationOnly)}">${escapeHtml(position)}</td>
+          <td class="athlete"><div>${config.show_flags?flag(p.nation)+" ":""}<strong>${escapeHtml(p.bib??"–")}</strong>
+          ${escapeHtml(p.name||t.unknown)}</div><small>${escapeHtml(status)}</small></td>
+          <td>${escapeHtml(currentLap)}</td><td>${escapeHtml(currentSplit)}${segments?`<div class="segment-detail">${segments}</div>`:""}</td>
+          <td class="num">${escapeHtml(cp?elapsed(cp.elapsed_ms):"–")}</td>
+          <td class="num">${escapeHtml(cp?gap:"–")}</td></tr>`;
+      }).join("")}</tbody></table>
+      <div class="minor">${escapeHtml(t.stationOnly)} · ${escapeHtml(t.lapUnavailable)}</div></div>`
+      :`<div class="error">${escapeHtml(t.noData)}</div>`;
     const lanes=range.length?range.map(s=>{
       const pattern=typeof s.shoot_string==="string"?s.shoot_string.slice(0,5):"";
-      const targets=[...pattern].map(x=>`<span class="target ${x==="x"?"miss":"hit"}"></span>`).join("");
-      return `<div class="entry"><div>
-        <div>${escapeHtml(t.lane)} ${escapeHtml(s.lane??"–")} · ${config.show_flags?flag(s.nation)+" ":""}${escapeHtml(s.name||"#"+s.bib)}</div>
-        <div class="minor">${escapeHtml(s.shots_count??0)} ${escapeHtml(t.shots)}, ${escapeHtml(s.missed??0)} ${escapeHtml(t.misses)} · ${escapeHtml(s.state||"")}</div>
-        <div class="targets">${targets}</div>
-      </div><div>${typeof s.elapsed_on_range_seconds==="number"?escapeHtml(s.elapsed_on_range_seconds.toFixed(1)+" s"):"–"}</div></div>`;
+      const targets=Array.from({length:5},(_,i)=>{
+        const x=pattern[i];
+        return `<span class="target ${x==="x"?"miss":x==="o"?"hit":""}" aria-label="${escapeHtml(x==="x"?t.miss:x==="o"?t.hit:t.unknown)}"></span>`;
+      }).join("");
+      const rangeTime=typeof s.range_seconds==="number" && Number.isFinite(s.range_seconds)
+        ?s.range_seconds.toFixed(1)+" s": "–";
+      const elapsedRange=typeof s.elapsed_on_range_seconds==="number" && Number.isFinite(s.elapsed_on_range_seconds)
+        ?s.elapsed_on_range_seconds.toFixed(1)+" s":"–";
+      const shotTimes=Array.isArray(s.shots_with_timestamps)
+        ?s.shots_with_timestamps.filter(x=>x && typeof x.time==="string" && x.time):[];
+      const parsed=shotTimes.map(x=>Date.parse(x.time)).filter(Number.isFinite).sort((a,b)=>a-b);
+      const seriesTime=parsed.length===5?(parsed[4]-parsed[0])/1000:null;
+      const intervals=parsed.length===5?parsed.slice(1).map((ms,i)=>((ms-parsed[i])/1000).toFixed(1)+" s").join(" · "):"–";
+      return `<div class="range-row">
+        <div class="range-head"><div><strong>${escapeHtml(t.lane)} ${escapeHtml(s.lane??"–")}</strong> ·
+        ${config.show_flags?flag(s.nation)+" ":""}${escapeHtml(s.name||"#"+s.bib)}</div>
+        <span class="minor">${escapeHtml(t.shootNumber)} ${escapeHtml(s.shoot_nr??"–")}</span></div>
+        <div class="range-body">
+          <div class="range-times">
+            <span class="key">${escapeHtml(t.rangeTime)}</span>
+            <span class="value">${escapeHtml(rangeTime==="–"?(elapsedRange==="–"?"–":elapsedRange+" *"):rangeTime)}</span>
+            <span class="key">${escapeHtml(t.seriesTime)}</span>
+            <span class="value">${escapeHtml(seriesTime===null?"–":seriesTime.toFixed(1)+" s")}</span>
+            <span class="key">${escapeHtml(t.shotIntervals)}</span>
+            <span class="value">${escapeHtml(intervals)}</span>
+          </div>
+          <div class="range-targets"><div class="targets">${targets}</div>
+            <div class="minor">${escapeHtml(s.shots_count??0)} ${escapeHtml(t.shots)} ·
+            ${escapeHtml(s.missed??0)} ${escapeHtml(t.misses)}</div></div>
+        </div>
+        <div class="minor">${escapeHtml(s.state||"")} · ${escapeHtml(t.rangeTimeCaveat)}</div>
+      </div>`;
     }).join(""):`<div class="error">${escapeHtml(t.noRange)}</div>`;
+    const race=data?.race||{};
+    const eventName=config.competition_name||race.name||data?.competition_name||"";
+    const eventCity=config.competition_city||race.city||race.location||data?.competition_city||"";
+    const eventCountry=config.competition_country||race.country||data?.competition_country||"";
+    const eventLocation=[eventCity,eventCountry].filter(Boolean).join(", ");
     const verified=data?.sources?.results?.live_verified && data?.sources?.shooting?.live_verified && !isDemo;
     const badge=isDemo?t.demoNotice:verified?t.live:data?t.replay:t.noData;
     const replayMessage=config.replay_url && !isDemo
@@ -190,7 +264,9 @@ class IbuBiathlonCard extends HTMLElement {
       <div class="minor">${escapeHtml(t.noVerifiedRanking)}</div>
       <div class="minor">${escapeHtml(t.sourceUnverified)}</div></details>`;
     this.shadowRoot.innerHTML=`<style>${css}</style><ha-card>
-      <div class="head"><h2>🎯 ${escapeHtml(t.title)}</h2><span class="pill ${isDemo?"demo":""}">${escapeHtml(badge)}</span></div>
+      <div class="head"><div><h2>🎯 ${escapeHtml(eventName||t.title)}</h2>
+      ${eventLocation?`<div class="event-location">${escapeHtml(eventLocation)}</div>`:""}
+      </div><span class="pill ${isDemo?"demo":""}">${escapeHtml(badge)}</span></div>
       <div class="source-line"><span>${escapeHtml(t.source)}: ${sourceLine("results")}</span><span>${escapeHtml(classId||"")}</span></div>
       <div class="panels ${["stacked","compact"].includes(config.layout)?config.layout:""}">
       <section class="panel"><h3>${escapeHtml(t.results)}</h3>${showClock("results")}${results}</section>
@@ -210,6 +286,8 @@ class IbuBiathlonCardEditor extends HTMLElement {
     const t=this._hass?.language?.startsWith("sv")?sv:en;
     const fields=[
       ["entity",t.entity,"text"],["replay_url",t.replayFile,"text"],["class_id",t.classId,"text"],
+      ["competition_name",t.competitionName,"text"],["competition_city",t.competitionCity,"text"],
+      ["competition_country",t.competitionCountry,"text"],
       ["layout",t.layout,["two_column","stacked","compact"]],
       ["clock_display",t.timeMode,["both","event","receipt"]],
       ["range_sort","Range sort",["arrival","lane"]],
