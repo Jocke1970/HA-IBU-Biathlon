@@ -408,3 +408,27 @@ all REST recordings were received after that point. The observed
 13:40:00 replay contains both classes: 65 valid women's results plus
 the DNF and DNS, and 78 valid men's results. Those are observations of
 the **recording window**, not proof the provider lacked live data earlier.
+
+
+### Temporal visibility of terminal statuses (dev)
+
+For reconstructed athlete history, merged `result_status` is final
+knowledge and must **not** be shown in earlier snapshots. The merge now
+preserves `result_status_observed_utc`, the earliest saved receipt time
+of DNF/DNS per athlete. The leaderboard converts that timestamp to
+Europe/Stockholm and shows terminal status only once it was observed.
+If no timestamp was captured, retrospective mode keeps the status
+unknown rather than inventing when it became known. Observed REST mode
+already filters by response receipt time.
+
+Idre 2026-11-15: Grete Gaim (DNF) and Annie Lind (DNS) are present in
+recorded results from approximately 13:36:43 local. This does **not**
+establish when they actually withdrew or did not start; only when the
+browser recording first contained that knowledge. No terminal status
+should appear in a reconstructed 12:08:50 snapshot.
+
+Re-run the merge in a *new output directory* to include the receipt
+metadata, then inspect the reconstructed leaderboard on both sides of
+the observed time. Tests cover the temporal boundary and unordered
+input snapshots. Both observed and reconstructed modes still require
+careful distinction from a fully observed real-time timing feed.
