@@ -44,20 +44,17 @@ class SignalrReplayTests(unittest.TestCase):
         middle = self.view("12:08:20")["shooting_range"][0]
         self.assertEqual(middle["shots_count"], 2)
         self.assertEqual(middle["missed"], 1)
-        completed = self.view("12:08:32")["shooting_range"][0]
-        self.assertEqual(completed["state"], "recently_finished")
-        self.assertEqual(completed["shots_count"], 5)
-        self.assertEqual(completed["out_time"], "2026-11-15T12:08:30")
-        self.assertEqual(len(self.view("12:08:44")["shooting_range"]), 1)
-        self.assertEqual(len(self.view("12:08:45")["shooting_range"]), 0)
+        # A confirmed out_time takes precedence over any old 15-second hold.
+        self.assertEqual(len(self.view("12:08:32")["shooting_range"]), 0)
+        self.assertEqual(len(self.view("12:08:44")["shooting_range"]), 0)
 
     def test_late_zero_reset_does_not_erase_result(self):
         self.save([
             self.record("11:08:30", 5, pattern="ooooo", out="2026-11-15T11:08:30"),
             self.record("11:08:31", 0, pattern="", out="2026-11-15T11:08:31", lane=None)])
-        row = self.view("12:08:32")["shooting_range"][0]
-        self.assertEqual(row["shots_count"], 5)
-        self.assertEqual(row["anomalies"], ["late_zero_reset_ignored"])
+        # The late zero reset is ignored, but the confirmed departure clears
+        # the lane immediately.
+        self.assertEqual(self.view("12:08:32")["shooting_range"], [])
 
     def test_no_shot_times_no_invention(self):
         self.save([self.record("11:08:08", 1, pattern="o____")])
@@ -66,14 +63,49 @@ class SignalrReplayTests(unittest.TestCase):
         self.assertEqual(row["shots_with_timestamps"], [])
         self.assertEqual(row["state"], "active_unconfirmed")
 
+    def test_completed_five_shots_waits_for_exit_even_minutes_later(self):
+        self.save([self.record("11:08:30", 5, pattern="ooooo")])
+        row = self.view("12:12:00")["shooting_range"][0]
+        self.assertEqual(row["state"], "shooting_complete_exit_unconfirmed")
+        self.assertEqual(row["shots_count"], 5)
+        self.assertIsNone(row["out_time"])
+        self.assertEqual(self.view("12:12:00")["retention_policy"],
+                         "until_confirmed_exit_or_lane_reoccupied")
+
+    def test_next_athlete_takes_lane_and_old_athlete_never_reappears(self):
+        first = self.record("11:08:30", 5, pattern="ooooo")
+        second = self.record("11:09:30", 1, pattern="o____",
+                             start="2026-11-15T11:09:28")
+        second.update(athlete_id="b", start_no=102)
+        self.metadata.append({"race_id": "2854", "athlete_id": "b",
+                              "class_id": "men", "bib": 102,
+                              "name": "Athlete B", "nation": "SWE"})
+        self.save([first, second])
+        before = self.view("12:09:20")["shooting_range"]
+        self.assertEqual([x["athlete_id"] for x in before], ["a"])
+        after = self.view("12:09:31")["shooting_range"]
+        self.assertEqual([x["athlete_id"] for x in after], ["b"])
+        departure = dict(second, out_time="2026-11-15T11:09:42",
+                         captured_utc="2026-11-15T11:09:44+00:00")
+        self.save([first, second, departure])
+        self.assertEqual(self.view("12:09:45")["shooting_range"], [])
+
+    def test_confirmed_departure_in_update_clears_without_timer(self):
+        first = self.record("11:08:30", 5, pattern="ooooo")
+        departed = self.record("11:08:40", 5, pattern="ooooo",
+                               out="2026-11-15T11:08:38")
+        self.save([first, departed])
+        self.assertEqual(len(self.view("12:08:35")["shooting_range"]), 1)
+        self.assertEqual(self.view("12:08:41")["shooting_range"], [])
+
     def test_late_hour_shift_preserves_clocks(self):
-        original = self.record("11:08:32", 5, pattern="ooooo", out="2026-11-15T11:08:30")
+        original = self.record("11:08:32", 5, pattern="ooooo", out="2026-11-15T11:08:40")
         shifted = self.record("11:08:33", 5, pattern="ooooo",
-                              out="2026-11-15T10:08:30",
+                              out="2026-11-15T10:08:40",
                               start="2026-11-15T10:08:00")
         self.save([original, shifted])
         row = self.view("12:08:34")["shooting_range"][0]
-        self.assertEqual(row["out_time"], "2026-11-15T12:08:30")
+        self.assertIsNone(row["out_time"])
         self.assertIn("late_hour_shift_corrected", row["anomalies"])
 
 
