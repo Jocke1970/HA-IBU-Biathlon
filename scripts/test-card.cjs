@@ -44,6 +44,13 @@ card.setConfig({...stub,demo:true});
 card.hass={language:"sv",states:{}};
 assert.match(card.shadowRoot.innerHTML,/DEMO/);
 assert.match(card.shadowRoot.innerHTML,/Axel Mannelqvist/);
+assert.match(card.shadowRoot.innerHTML,/Skottserietid/);
+assert.match(card.shadowRoot.innerHTML,/Senaste sträcka/);
+assert.match(card.shadowRoot.innerHTML,/range-targets/);
+card.setConfig({...stub,demo:true,competition_name:"Sprint",competition_city:"Idre",competition_country:"Sverige"});
+assert.match(card.shadowRoot.innerHTML,/Sprint/);
+assert.match(card.shadowRoot.innerHTML,/Idre, Sverige/);
+
 assert.match(card.shadowRoot.innerHTML,/CCResult/);
 assert.match(card.shadowRoot.innerHTML,/container-type:inline-size/);
 assert.match(card.shadowRoot.innerHTML,/@container \(max-width: 959px\)/);
