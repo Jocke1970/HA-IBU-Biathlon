@@ -92,7 +92,7 @@ def compact_record(payload, race_id):
              "time": target_shot_time(obj[f"Target{n}"])}
             for n in range(1, 9)
             if isinstance(obj.get(f"Target{n}"), dict)
-            and obj[f"Target{n}"].get("ShootTime")
+            and target_shot_time(obj[f"Target{n}"])
         ],
     })
     return base
