@@ -1,4 +1,7 @@
 export default {
+ rank:"Pl.", currentLap:"Varv", latestSplit:"Senaste sträcka", stationOnly:"Placering och eftertid gäller endast samma kontrollpunkt", lapUnavailable:"Varvgränser ännu ej mappade",
+ shootNumber:"Skytte",rangeTime:"Tid på vallen",seriesTime:"Skottserietid",shotIntervals:"Mellan skotten",rangeTimeCaveat:"* Tid hittills på vallen; ej sluttid",miss:"Bom",hit:"Träff",
+ competitionName:"Tävling", competitionCity:"Ort", competitionCountry:"Land", segmentHistory:"Passeringar / sträcktider",
  replayFile:"Lokal replay-JSON (/local/...json)", replayLoading:"Läser in replay-data…", replayLoadError:"Kunde inte läsa replay-fil",
  title:"Skidskytte", results:"Resultat", range:"Skjutvallen", source:"Datakälla",
  replay:"REPLAY", live:"LIVE", noData:"Väntar på tävlingsdata",
