@@ -87,6 +87,7 @@ class IbuBiathlonCard extends HTMLElement {
     const previous=this._config?.replay_url;
     this._config={...defaults,...config};
     if (previous !== this._config.replay_url) {
+      this._requestId++;this._replayLoading=false;
       this._replayData=null;this._loadedUrl=null;this._replayError=null;
     }
     this._startReplayLoad();
@@ -94,7 +95,7 @@ class IbuBiathlonCard extends HTMLElement {
   }
   set hass(hass){this._hass=hass;this._startReplayLoad();this.render();}
   connectedCallback(){this._startReplayLoad();}
-  disconnectedCallback(){this._requestId++;}
+  disconnectedCallback(){this._requestId++;this._replayLoading=false;}
   _startReplayLoad(){
     const url=this._config?.replay_url;
     if (!url || this._config?.demo || this._replayLoading || this._loadedUrl===url) return;
