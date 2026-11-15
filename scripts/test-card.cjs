@@ -1,0 +1,52 @@
+#!/usr/bin/env node
+// Minimal HA custom element / visual editor smoke-test; no npm deps.
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const vm = require("node:vm");
+const path = require("node:path");
+const root = path.resolve(__dirname,"..");
+const content = fs.readFileSync(path.join(root,"dist/HA-IBU-Biathlon.js"),"utf8");
+const registry = new Map();
+class Element {
+  attachShadow(){this.shadowRoot={innerHTML:"",querySelectorAll:()=>[]};return this.shadowRoot;}
+  dispatchEvent(e){this.lastEvent=e;return true;}
+}
+const customElements={get:k=>registry.get(k),define:(k,v)=>registry.set(k,v)};
+const window={customCards:[]};
+const document={createElement:name=>{
+  const Klass=registry.get(name);if(!Klass)throw Error("Unknown element: "+name);
+  return new Klass();
+}};
+class CustomEvent {constructor(type,options){this.type=type;this.detail=options.detail;}}
+vm.runInNewContext(content,{HTMLElement:Element,customElements,window,document,CustomEvent});
+const Card=registry.get("ha-ibu-biathlon-card");
+const Editor=registry.get("ha-ibu-biathlon-card-editor");
+assert.ok(Card&&Editor,"HA card and visual editor registered");
+const stub=Card.getStubConfig();
+assert.equal(stub.type,undefined,"HA getStubConfig must omit card type");
+const editor=Card.getConfigElement();
+assert.ok(editor instanceof Editor);
+editor.setConfig({...stub});
+editor.hass={language:"sv"};
+assert.match(editor.shadowRoot.innerHTML,/Kortinställningar/);
+const card=new Card();
+card.setConfig({...stub,demo:true});
+card.hass={language:"sv",states:{}};
+assert.match(card.shadowRoot.innerHTML,/DEMO/);
+assert.match(card.shadowRoot.innerHTML,/Axel Mannelqvist/);
+assert.match(card.shadowRoot.innerHTML,/CCResult/);
+assert.doesNotMatch(card.shadowRoot.innerHTML,/class="pill ">LIVE/);
+card.setConfig({type:"custom:ha-ibu-biathlon-card",demo:false,entity:"sensor.biathlon"});
+card.hass={language:"en",states:{
+ "sensor.biathlon":{attributes:{livetiming:{
+   at:"2026-11-15T12:08:50",classes:{men:[{bib:1,name:"<script>alert(1)</script>",
+   status:"passed_checkpoint",last_checkpoint:null}]},shooting_range:[],
+   sources:{results:{provider_name:"CCResult",live_verified:false},
+            shooting:{provider_name:"CCResult",live_verified:false}}}
+ }}
+}};
+assert.match(card.shadowRoot.innerHTML,/&lt;script&gt;/,"Athlete names escaped");
+assert.doesNotMatch(card.shadowRoot.innerHTML,/<script>alert\(1\)<\/script>/);
+assert.match(card.shadowRoot.innerHTML,/Results/);
+assert.equal(window.customCards.length,1);
+console.log("HA frontend smoke test: registration, editor, languages, demo, safe content OK");
