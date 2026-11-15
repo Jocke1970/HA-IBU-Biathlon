@@ -12,6 +12,26 @@ class MergeTests(unittest.TestCase):
         path.write_text("".join(json.dumps(v) + "\n" for v in values), encoding="utf-8")
         return path
 
+    def test_terminal_status_first_observed_receipt_is_earliest(self):
+        with tempfile.TemporaryDirectory() as temp:
+            row = {"AthleteID": "grete", "ClassID": "women",
+                   "Startno": 23, "Status": 101,
+                   "Time": {"Ipos": 18, "IntermediateID": "finish",
+                            "RunTimeMS": 120960000000}}
+            frames = [
+                {"endpoint": "results", "race_id": "2854", "class_id": "women",
+                 "captured_utc": "2026-11-15T12:36:50+00:00", "ipos": "18",
+                 "payload": {"Data": [row]}},
+                {"endpoint": "results", "race_id": "2854", "class_id": "women",
+                 "captured_utc": "2026-11-15T12:36:43+00:00", "ipos": "18",
+                 "payload": {"Data": [row]}},
+            ]
+            path = self.write(temp, "rest.jsonl", frames)
+            rows, _ = merge([path], [])
+            self.assertEqual(rows[0]["result_status"], "DNF")
+            self.assertEqual(rows[0]["result_status_observed_utc"],
+                             "2026-11-15T12:36:43+00:00")
+
     def test_idre_dnf_dns_statuses_are_preserved(self):
         with tempfile.TemporaryDirectory() as temp:
             athletes = [
