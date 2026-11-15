@@ -22,6 +22,29 @@ class MergeTests(unittest.TestCase):
         self.assertIsNone(seconds_between(
             "2026-11-15T11:08:46", "2026-11-15T11:08:15"))
 
+    def test_late_hour_shift_does_not_replace_valid_shooting_times(self):
+        with tempfile.TemporaryDirectory() as temp:
+            start = {"endpoint": "startlist", "race_id": "2854",
+                     "payload": {"Data": [{"AthleteID": "a_2854", "ClassID": "men_2854",
+                                          "Startno": 128, "StartTime": "2026-11-15T12:14:00"}]}}
+            before = {"kind": "shooting", "race_id": "2854", "athlete_id": "a_2854",
+                      "shoot_nr": 2, "lane": 14, "sum_shooted": 5, "missed": 1,
+                      "shoot_string": "oooxo", "captured_utc": "2026-11-15T11:34:21+00:00",
+                      "in_time": "2026-11-15T11:31:06.975414",
+                      "out_time": "2026-11-15T11:31:44.196760"}
+            later = {**before, "captured_utc": "2026-11-15T11:34:22+00:00",
+                     "in_time": "2026-11-15T10:31:06.975",
+                     "out_time": "2026-11-15T10:31:44.196"}
+            rest = self.write(temp, "rest.jsonl", [start])
+            events = self.write(temp, "events.jsonl", [before, later])
+            rows, report = merge([rest], [events])
+            shooting = rows[0]["shootings"][0]
+            self.assertEqual(shooting["in_time"], before["in_time"])
+            self.assertEqual(shooting["out_time"], before["out_time"])
+            self.assertEqual(shooting["shoot_string"], "oooxo")
+            self.assertEqual(report["warnings"]["shooting_late_hour_shift"], 1)
+            self.assertIn("shoot_2_late_hour_shift", rows[0]["quality_flags"])
+
     def test_merge_class_safe_and_never_invents_shot_times(self):
         with tempfile.TemporaryDirectory() as temp:
             person = {"AthleteID": "ath_2854", "ClassID": "men_2854",
