@@ -307,3 +307,16 @@ The future HA list needs verified official station names, explicit finish
 metadata, ongoing result snapshots with the capture clock, and a policy
 for ranking mixed-progress athletes. The current data cannot establish
 all those. No UI or Home Assistant integration is implemented here.
+
+
+#### Checkpoint ranking safety update
+
+After the first Idre replay, the athlete list is now deliberately sorted
+by **bib**, not by checkpoint rank (ranks from different course points
+must not be interleaved as an overall leaderboard). The output adds
+`checkpoint_groups`, each keyed by race + class + station with
+independently comparable runner placements. The observed replay also
+excludes pass timestamps later than `--at` from **the rank calculation
+itself**, not only the athlete's selected latest passage.
+
+These checks remain development-only and need a user-run regression test.
