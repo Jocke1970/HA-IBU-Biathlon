@@ -151,7 +151,9 @@ def checkpoint_state(people, readings, at, mode, finish_stations=()):
     finish_stations = set(str(s) for s in finish_stations)
     observations = {}
     for row in readings:
-        if row["known_at"] > at:
+        if row["known_at"] > at or (row["pass_time"] is not None and row["pass_time"] > at):
+            # A response may contain a pass timestamp later than the replay
+            # clock. Never let that observation affect either ranking or UI.
             continue
         key = (*row["key"], row["station"])
         old = observations.get(key)
@@ -208,19 +210,36 @@ def checkpoint_state(people, readings, at, mode, finish_stations=()):
             "overall_position": None,
         })
     for cls in classes:
-        # This is a presentation sort, NOT an asserted overall leaderboard:
-        # checkpoints are ordered using available timing values only.
+        # Neutral start-number sorting: checkpoint positions from different
+        # stations must never appear as a single overall leaderboard.
         classes[cls].sort(key=lambda row: (
-            row["last_checkpoint"] is None,
-            row["last_checkpoint"]["checkpoint_position"] if row["last_checkpoint"] else 999999,
-            row["bib"] if type(row["bib"]) is int else 999999))
+            row["bib"] if type(row["bib"]) is int else 999999,
+            row["athlete_id"]))
+    station_groups = {}
+    for (race, cls, station), candidates in sorted(groups.items()):
+        ranked = sorted(candidates, key=lambda x: (x["runtime_ms"], x["key"][-1]))
+        station_groups[f"{race}:{cls}:{station}"] = {
+            "race_id": race, "class_id": cls, "station_id": station,
+            "comparable_athletes": len(ranked),
+            "leader_elapsed_ms": ranked[0]["runtime_ms"],
+            "results": [{
+                "athlete_id": row["key"][2],
+                "bib": people[row["key"]].get("bib"),
+                "position": station_ranks[(*row["key"], station)]["position"],
+                "elapsed_ms": row["runtime_ms"],
+                "diff_ms": station_ranks[(*row["key"], station)]["diff_ms"]
+            } for row in ranked]
+        }
     return {
         "at": at.isoformat(), "mode": mode,
         "ranking_semantics": "checkpoint_local_no_overall_race_position",
         "classes": dict(sorted(classes.items())),
+        "athlete_list_sort": "bib_ascending_not_overall_position",
+        "checkpoint_groups": station_groups,
         "stations_observed": len(groups),
         "station_leader_ms": {
-            f"{cls}:{station}": ms for (_, cls, station), ms in station_leaders.items()
+            f"{race}:{cls}:{station}": ms
+            for (race, cls, station), ms in station_leaders.items()
         }
     }
 
