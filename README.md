@@ -320,3 +320,39 @@ excludes pass timestamps later than `--at` from **the rank calculation
 itself**, not only the athlete's selected latest passage.
 
 These checks remain development-only and need a user-run regression test.
+
+
+### Provisional Idre station catalog and combined UI state (dev only)
+
+`tools/ibu_station_catalog.py` builds a class-specific course station
+catalog from the merged athlete histories. It orders stations by median
+elapsed runtime and records adjacent transition counts per athlete.
+`ipos` is retained as an API selector, **not used as course sequence**.
+All official station labels and finish status remain unverified.
+
+`tools/ibu_combined_replay.py` joins the checkpoint leaderboard and
+incremental SignalR range state into one UI-facing JSON. It is **offline
+only** and deliberately does not invent a global race ranking.
+
+```bash
+python tools/ibu_station_catalog.py \
+  --merged captures/merged_idre_both/athlete_summary.json \
+  --out captures/merged_idre_both/station_catalog.json
+
+python tools/ibu_combined_replay.py \
+  --mode reconstructed \
+  --merged captures/merged_idre_both/athlete_summary.json \
+  --events captures/browser_20261115_120008/events.jsonl \
+  --at 2026-11-15T12:08:50 \
+  --out captures/merged_idre_both/combined_120850.json
+
+python -m unittest -v test_ibu_station_catalog test_ibu_combined_replay
+```
+
+The recording-derived station order is **provisional**. In combined
+reconstructed mode, checkpoint passings are retrospective while shooting
+data is constrained to observed SignalR message receipt. Do not describe
+this hybrid as actual historic live state. Use observed mode with REST
+capture files when validating what the browser had truly received.
+No beta release until both class mappings and receipt-time replay have
+been checked against real files.
