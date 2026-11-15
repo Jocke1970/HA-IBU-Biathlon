@@ -31,7 +31,7 @@ def audit_rest(paths):
         "first_received": None,
         "last_received": None,
         "stations": defaultdict(lambda: {
-            "ipos_values": set(), "snapshots": 0, "valid_passes": 0,
+            "ipos_values": set(), "valid_passes": 0,
             "athlete_ids": set(), "statuses": Counter(),
             "finish_field_true": 0, "finish_field_false": 0,
             "finish_field_missing": 0, "first_received": None,
@@ -120,7 +120,6 @@ def audit_rest(paths):
         for station_id, stat in sorted(raw["stations"].items()):
             stations[station_id] = {
                 "ipos_values": sorted(stat["ipos_values"]),
-                "snapshots": raw["results_snapshots"],
                 "valid_passes_seen": stat["valid_passes"],
                 "unique_athletes_with_pass": len(stat["athlete_ids"]),
                 "status_codes_observed": dict(sorted(stat["statuses"].items())),
