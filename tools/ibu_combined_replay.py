@@ -11,6 +11,7 @@ import json
 from pathlib import Path
 from ibu_leaderboard_replay import build_snapshot
 from ibu_signalr_replay import replay_messages
+from ibu_source_provenance import sources_for_snapshot
 
 
 def joined_state(at, *, merged, event_files, mode="reconstructed", rest_files=None,
@@ -40,8 +41,15 @@ def joined_state(at, *, merged, event_files, mode="reconstructed", rest_files=No
                 "shooting_presence_confirmed": bool(confirmed_range),
             })
         classes[cls] = decorated
+    sources = sources_for_snapshot(
+        at, mode=mode, rest_paths=rest_files, event_paths=event_files,
+        has_results=any(row["last_checkpoint"] is not None
+                        for members in board["classes"].values() for row in members),
+        has_shooting=range_state["processed_shooting_messages"] > 0,
+    )
     return {
         "at": at.isoformat(),
+        "sources": sources,
         "backend_type": "offline_joined_replay",
         "leaderboard_mode": mode,
         "ranking_semantics": board["ranking_semantics"],
@@ -91,6 +99,7 @@ def main():
         "checkpoint_groups": len(result["checkpoint_groups"]),
         "range_rows": len(result["shooting_range"]),
         "range_preview": result["shooting_range"][:3],
+        "sources": result["sources"],
         "audit": result["audit"],
     }, ensure_ascii=False, indent=2))
 
