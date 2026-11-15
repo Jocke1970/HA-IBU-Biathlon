@@ -199,6 +199,24 @@ def checkpoint_state(people, readings, at, mode, finish_stations=()):
         readings_for_person.sort(
             key=lambda x: (x["pass_time"] is not None,
                            x["pass_time"] or x["known_at"], x["runtime_ms"]))
+        # Course section times from already observed cumulative checkpoint clocks.
+        # Their labels stay "segments" until the official lap boundaries are mapped.
+        ordered = sorted(readings_for_person, key=lambda row: (
+            row["runtime_ms"], row["station"]))
+        checkpoint_history = []
+        previous = None
+        for row in ordered:
+            segment_ms = None
+            if previous is not None and row["runtime_ms"] > previous["runtime_ms"]:
+                segment_ms = row["runtime_ms"] - previous["runtime_ms"]
+            checkpoint_history.append({
+                "station_id": row["station"], "ipos": row["ipos"],
+                "elapsed_ms": row["runtime_ms"],
+                "passed_at": row["pass_time"].isoformat() if row["pass_time"] else None,
+                "segment_ms": segment_ms,
+                "segment_from_station": previous["station"] if segment_ms is not None else None,
+            })
+            previous = row
         latest = readings_for_person[-1] if readings_for_person else None
         point = None
         if latest:
@@ -230,6 +248,7 @@ def checkpoint_state(people, readings, at, mode, finish_stations=()):
                 "finished" if latest and latest["station"] in finish_stations else (
                     "passed_checkpoint" if latest else "no_verified_passing")),
             "last_checkpoint": point,
+            "checkpoint_history": checkpoint_history,
             "overall_position": None,
         })
     for cls in classes:
