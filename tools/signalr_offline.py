@@ -57,6 +57,11 @@ def decode(raw):
     return {"kind": "receive", "payload": value}
 
 
+def target_shot_time(target):
+    """Accept both spellings observed in decoding and browser capture."""
+    return target.get("Shootime") or target.get("ShootTime")
+
+
 def process(messages):
     groups = defaultdict(list)
     events = []
@@ -76,11 +81,11 @@ def process(messages):
         groups[key].append((i, shoot))
         for n in range(1, 9):
             target = shoot.get(f"Target{n}")
-            if isinstance(target, dict) and target.get("ShootTime"):
+            if isinstance(target, dict) and target_shot_time(target):
                 events.append({
                     "frame": i, "athlete_id": athlete, "start_no": shoot.get("StartNo"),
                     "shoot_nr": nr, "shot_nr": target.get("ShootNr", n),
-                    "hit": target.get("Hit"), "shot_time": target.get("ShootTime"),
+                    "hit": target.get("Hit"), "shot_time": target_shot_time(target),
                     "shoot_runtime": target.get("ShootRunTime"),
                     "sum_shooted": shoot.get("SumShooted"), "missed": shoot.get("Missed"),
                     "prone": shoot.get("Prone"), "lane": shoot.get("Lane"),
@@ -97,7 +102,7 @@ def process(messages):
                 counts.append({"frame": index, "count": count})
             for n in range(1, 9):
                 t = obs.get(f"Target{n}")
-                if isinstance(t, dict) and t.get("ShootTime"):
+                if isinstance(t, dict) and target_shot_time(t):
                     shots[n] = t
         summary.append({
             "athlete_id": athlete, "shoot_nr": nr, "start_no": latest.get("StartNo"),
