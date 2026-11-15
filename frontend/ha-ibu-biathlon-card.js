@@ -1,7 +1,7 @@
 import sv from "./translations/sv.js";
 import en from "./translations/en.js";
 
-const VERSION = "2026.11.0-dev.1";
+const VERSION = "2026.11.0-dev.2";
 const type = "custom:ha-ibu-biathlon-card";
 const escapeHtml = (v) => String(v ?? "").replace(/[&<>"']/g, c => (
   {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -74,21 +74,60 @@ const css = `
   @media(max-width:650px){.panels{grid-template-columns:1fr}}
 `;
 const defaults = {type,layout:"two_column",clock_display:"both",show_flags:true,
-  source_details:"compact",show_version:true,demo:false};
+  source_details:"compact",show_version:true,demo:false,replay_url:""};
+const validReplayUrl = url => typeof url === "string" &&
+  /^\/local\/[a-zA-Z0-9/_-]+\.json(?:\?v=[a-zA-Z0-9._-]+)?$/.test(url);
 
 class IbuBiathlonCard extends HTMLElement {
-  constructor(){super();this.attachShadow({mode:"open"});this._config={...defaults};}
+  constructor(){super();this.attachShadow({mode:"open"});this._config={...defaults};
+    this._replayData=null;this._replayError=null;this._replayLoading=false;
+    this._loadedUrl=null;this._requestId=0;}
   setConfig(config){
     if (!config || (config.type && config.type !== type)) throw Error("Invalid card type");
+    const previous=this._config?.replay_url;
     this._config={...defaults,...config};
+    if (previous !== this._config.replay_url) {
+      this._replayData=null;this._loadedUrl=null;this._replayError=null;
+    }
+    this._startReplayLoad();
     this.render();
   }
-  set hass(hass){this._hass=hass;this.render();}
+  set hass(hass){this._hass=hass;this._startReplayLoad();this.render();}
+  connectedCallback(){this._startReplayLoad();}
+  disconnectedCallback(){this._requestId++;}
+  _startReplayLoad(){
+    const url=this._config?.replay_url;
+    if (!url || this._config?.demo || this._replayLoading || this._loadedUrl===url) return;
+    if (!validReplayUrl(url)){
+      this._replayError="Only /local/*.json files can be loaded";
+      this._loadedUrl=url;return;
+    }
+    this._replayLoading=true;this._replayError=null;
+    const request=++this._requestId;
+    fetch(url,{credentials:"same-origin",cache:"no-store"}).then(response=>{
+      if (!response.ok) throw Error("HTTP "+response.status);
+      return response.json();
+    }).then(data=>{
+      if (!data || typeof data!=="object" || !data.classes ||
+          !Array.isArray(data.shooting_range) || !data.sources || !data.clocks)
+        throw Error("Invalid combined replay JSON");
+      if (request!==this._requestId || url!==this._config.replay_url) return;
+      this._replayData=data;this._loadedUrl=url;
+    }).catch(error=>{
+      if (request!==this._requestId || url!==this._config.replay_url) return;
+      this._replayError=String(error.message||error);
+      this._loadedUrl=url;
+    }).finally(()=>{
+      if (request!==this._requestId || url!==this._config.replay_url) return;
+      this._replayLoading=false;this.render();
+    });
+  }
   getCardSize(){return 5;}
   getGridOptions(){return {columns:12,rows:5,min_rows:3};}
   lang(){return this._hass?.language?.startsWith("sv") ? sv : en;}
   snapshot(){
     if (this._config.demo) return DEMO;
+    if (this._config.replay_url) return this._replayData;
     const attrs=this._hass?.states?.[this._config.entity]?.attributes;
     let data=attrs?.livetiming;
     if (typeof data==="string"){try{data=JSON.parse(data);}catch{return null;}}
@@ -139,6 +178,9 @@ class IbuBiathlonCard extends HTMLElement {
     }).join(""):`<div class="error">${escapeHtml(t.noRange)}</div>`;
     const verified=data?.sources?.results?.live_verified && data?.sources?.shooting?.live_verified && !isDemo;
     const badge=isDemo?t.demoNotice:verified?t.live:data?t.replay:t.noData;
+    const replayMessage=config.replay_url && !isDemo
+      ? (this._replayError ? `<div class="error">${escapeHtml(t.replayLoadError)}: ${escapeHtml(this._replayError)}</div>`
+        : this._replayLoading ? `<div class="notice">${escapeHtml(t.replayLoading)}</div>` : "") : "";
     const detail=`<details ${config.source_details==="expanded"?"open":""}><summary>${escapeHtml(t.source)}</summary>
       <div>${escapeHtml(t.results)}: ${sourceLine("results")} · ${escapeHtml(sources.results?.data_mode||t.unknown)}</div>
       <div>${escapeHtml(t.range)}: ${sourceLine("shooting")} · ${escapeHtml(sources.shooting?.data_mode||t.unknown)}</div>
@@ -150,7 +192,7 @@ class IbuBiathlonCard extends HTMLElement {
       <div class="panels ${["stacked","compact"].includes(config.layout)?config.layout:""}">
       <section class="panel"><h3>${escapeHtml(t.results)}</h3>${showClock("results")}${results}</section>
       <section class="panel"><h3>${escapeHtml(t.range)}</h3>${showClock("shooting")}${lanes}</section>
-      </div>${detail}${config.show_version?`<div class="notice">${escapeHtml(t.version)} ${VERSION}</div>`:""}
+      </div>${replayMessage}${detail}${config.show_version?`<div class="notice">${escapeHtml(t.version)} ${VERSION}</div>`:""}
     </ha-card>`;
   }
   static getConfigElement(){return document.createElement("ha-ibu-biathlon-card-editor");}
@@ -164,7 +206,7 @@ class IbuBiathlonCardEditor extends HTMLElement {
     if(!this.shadowRoot||!this._config)return;
     const t=this._hass?.language?.startsWith("sv")?sv:en;
     const fields=[
-      ["entity",t.entity,"text"],["class_id",t.classId,"text"],
+      ["entity",t.entity,"text"],["replay_url",t.replayFile,"text"],["class_id",t.classId,"text"],
       ["layout",t.layout,["two_column","stacked","compact"]],
       ["clock_display",t.timeMode,["both","event","receipt"]],
       ["range_sort","Range sort",["arrival","lane"]],
