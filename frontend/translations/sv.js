@@ -1,4 +1,8 @@
 export default {
+ inactiveLane:"Ej tillgänglig",
+ assumedCapacity:"antaget standardantal",
+ laneCapacity:"Banor",atLeast:"minst",laneCountUnknown:"Antal banor okänt",laneCountOverride:"Arenans banantal (0 = standard 30, max 30)",
+ rangeLayout:"Skjutvallsvisning",laneCount:"Antal skjutbanor",emptyLane:"Ledig",rangeIn:"In på vallen",rangeOut:"Ut från vallen",elapsedRange:"Tid hittills på vallen",
  rank:"Pl.", currentLap:"Varv", latestSplit:"Senaste sträcka", stationOnly:"Placering och eftertid gäller endast samma kontrollpunkt", lapUnavailable:"Varvgränser ännu ej mappade",
  shootNumber:"Skytte",rangeTime:"Tid på vallen",seriesTime:"Skottserietid",shotIntervals:"Mellan skotten",rangeTimeCaveat:"* Tid hittills på vallen; ej sluttid",miss:"Bom",hit:"Träff",
  competitionName:"Tävling", competitionCity:"Ort", competitionCountry:"Land", segmentHistory:"Passeringar / sträcktider",
