@@ -230,3 +230,31 @@ checkpoints cannot be compared. The `finished` status requires an
 explicitly verified `--finish-station` mapping; otherwise a passed
 checkpoint does not imply a finish. Missing `OutTime` leaves the range
 record in `active_unconfirmed` for later data-quality handling.
+
+
+### Incremental shooting replay from observed SignalR messages (dev only)
+
+`tools/ibu_signalr_replay.py` uses the recorded `events.jsonl` sequence,
+not the final snapshot, to expose only information that had arrived at the
+requested local playback time. This supports 0→1→2→3→4→5 shot progression,
+source result corrections and 15-second post-`OutTime` display.
+
+```bash
+python tools/ibu_signalr_replay.py \
+  --events captures/browser_20261115_120008/events.jsonl \
+  --merged captures/merged_idre_both/athlete_summary.json \
+  --at 2026-11-15T12:08:30 \
+  --out captures/merged_idre_both/shooting_replay_120830.json
+
+python -m unittest -v test_ibu_signalr_replay
+```
+
+Captured UTC times are converted with `Europe/Stockholm`; the source's
+naive shooting timestamps use the **provisional** +1 hour offset, configurable
+with `--offset-hours`. Message receipt time is not the precise shot time:
+if the original capture omitted per-shot timestamps, interval statistics must
+remain unavailable. The tool never surfaces a later message or a future
+`OutTime` before it has been observed. The `active_unconfirmed` status
+means the last received record did not contain a verified exit; it is not
+proof of current physical presence. This remains offline research software,
+not a finished Home Assistant integration.
