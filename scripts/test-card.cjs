@@ -53,7 +53,7 @@ assert.match(card.shadowRoot.innerHTML,/Ut från vallen/);
 assert.match(card.shadowRoot.innerHTML,/Mellan skotten/);
 assert.match(card.shadowRoot.innerHTML,/Skottserietid/);
 assert.match(card.shadowRoot.innerHTML,/Bana 1/);
-assert.match(card.shadowRoot.innerHTML,/Banor: 30 \(antaget standardantal\)/);
+assert.doesNotMatch(card.shadowRoot.innerHTML,/Banor: 30/);
 assert.match(card.shadowRoot.innerHTML,/Bana 30/);
 assert.match(card.shadowRoot.innerHTML,/range-row empty/);
 assert.match(card.shadowRoot.innerHTML,/panel-heading/);
