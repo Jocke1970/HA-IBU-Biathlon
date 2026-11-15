@@ -166,3 +166,24 @@ automatically.
 The `replay_url` mode is intentionally a test bridge; it is not the
 final HA integration architecture. Complete the beta release before
 installing the dashboard module into HA.
+
+## Wide desktop layout (b2 development)
+
+The default `two_column` card uses **equal 50/50 columns** when the
+card's actual available width is at least approximately 960 CSS pixels.
+Each panel can then reach roughly 450–500px within a 1000–1100px card.
+Below this threshold the panels stack vertically, avoiding the cramped
+~240px columns from the b1 screenshot. This uses CSS container queries
+against the card host, not just the browser viewport.
+
+**Important:** the card cannot enlarge a narrow Home Assistant Sections
+column by itself. For the intended wide two-column desktop layout,
+place it in a sufficiently wide dashboard view (for instance a Panel
+view or an appropriately configured full-width layout). In a normal
+narrow Sections column it will deliberately stack rather than show
+two tiny columns. Mobile continues to stack. There is no horizontal
+scroll or forced fixed-width overflow.
+
+Do not change the `www` directory structure for this UI-only
+modification. Beta b1 remains the known working reference until the
+new release passes CI and HA testing.
