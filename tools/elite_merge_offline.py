@@ -132,6 +132,7 @@ def merge(rest_paths, events_paths):
         athlete["checkpoints"].sort(key=lambda p: (p["runtime_ms"], int(p["ipos"]) if p["ipos"].isdigit() else 999))
     shooting_state = {}
     counts = defaultdict(set)
+    shooting_resets = set()
     for event in read_jsonl(events_paths):
         stats["signalr_events"] += 1
         if event.get("kind") != "shooting":
@@ -145,7 +146,19 @@ def merge(rest_paths, events_paths):
         if isinstance(n, int) and not isinstance(n, bool):
             counts[key].add(n)
         previous = shooting_state.get(key)
-        if previous is None or (event.get("captured_utc") or "", event.get("db_id") or 0) >= (
+        # A source may issue a later empty/tombstone-like snapshot with
+        # zero shots and zero-duration in/out times. Keep the raw event,
+        # but do not overwrite the last meaningful shooting observation.
+        is_reset = (
+            previous is not None
+            and isinstance(n, int) and n == 0
+            and isinstance(previous.get("sum_shooted"), int)
+            and previous["sum_shooted"] > 0
+        )
+        if is_reset:
+            shooting_resets.add(key)
+            warnings["shooting_reset_after_shots"] += 1
+        elif previous is None or (event.get("captured_utc") or "", event.get("db_id") or 0) >= (
             previous.get("captured_utc") or "", previous.get("db_id") or 0
         ):
             shooting_state[key] = event
@@ -158,6 +171,8 @@ def merge(rest_paths, events_paths):
         in_time, out_time = event.get("in_time"), event.get("out_time")
         shots = event.get("shots") or []
         shot_times = sorted(x["time"] for x in shots if isinstance(x, dict) and x.get("time"))
+        if (race_id, athlete_id, shoot_nr) in shooting_resets:
+            person["quality_flags"].append(f"shoot_{shoot_nr}_reset_after_shots")
         shooting = {
             "shoot_nr": shoot_nr, "lane": event.get("lane"),
             "prone": event.get("prone"),
