@@ -161,3 +161,38 @@ semantics, so timestamp text is preserved in the report.
 This is a research utility on the **dev** branch, not a beta or stable
 Home Assistant release. Run regression tests and review the quality report
 before considering promotion to beta.
+
+
+### Idre two-class replay and timing audit
+
+Use **both** saved REST recordings. They include the same startlist,
+but different result classes; the merger deduplicates checkpoint observations
+by race, athlete, class and `ipos`. Do not omit the women's REST file:
+
+```bash
+python tools/elite_merge_offline.py \
+  --rest 'captures/rest_MEN/rest_snapshots.jsonl' 'captures/rest_WOMEN/rest_snapshots.jsonl' \
+  --events 'captures/browser_MEN/events.jsonl' \
+  --out captures/merged_idre_both
+
+python tools/elite_timing_audit.py \
+  --merged captures/merged_idre_both/athlete_summary.json \
+  --out captures/merged_idre_both/timing_audit.json
+
+python -m unittest discover -s tools -p 'test_elite_*py'
+```
+
+`timing_audit.json` provides checkpoint IDs and elapsed-time ranges **per
+class**, without fabricating station names. The inferred one-hour offset is
+a consistency check against known start and end times, **not** license to
+globally rewrite timestamps. A late correction of men's bib 128, shoot 2,
+changed its original in/out timestamps backward by an hour after the result
+was corrected from six to five shots. The merger retains the valid prior
+timestamps when a later otherwise identical five-shot record shifts both
+clock values exactly one hour. This repair gets a visible quality flag.
+Do not apply it to other shapes or assume all source timestamps use a fixed
+timezone. Raw captures are never rewritten.
+
+Any shooting time that is unavailable stays unavailable. A 15-second
+post-`OutTime` UI retention policy is a future presentation concern and is
+not a substitute for event validation.
