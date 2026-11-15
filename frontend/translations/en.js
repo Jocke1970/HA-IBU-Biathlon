@@ -1,4 +1,5 @@
 export default {
+ replayFile:"Local replay JSON (/local/...json)", replayLoading:"Loading replay data…", replayLoadError:"Could not load replay file",
  title:"Biathlon", results:"Results", range:"Shooting range", source:"Data source",
  replay:"REPLAY", live:"LIVE", noData:"Waiting for competition data",
  offline:"Historical replay", unknown:"Unknown", event:"Race event",
