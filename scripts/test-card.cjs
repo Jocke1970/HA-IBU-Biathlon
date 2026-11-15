@@ -45,6 +45,9 @@ card.hass={language:"sv",states:{}};
 assert.match(card.shadowRoot.innerHTML,/DEMO/);
 assert.match(card.shadowRoot.innerHTML,/Axel Mannelqvist/);
 assert.match(card.shadowRoot.innerHTML,/CCResult/);
+assert.match(card.shadowRoot.innerHTML,/container-type:inline-size/);
+assert.match(card.shadowRoot.innerHTML,/@container \(max-width: 959px\)/);
+assert.match(card.shadowRoot.innerHTML,/grid-template-columns:minmax\(0,1fr\) minmax\(0,1fr\)/);
 assert.doesNotMatch(card.shadowRoot.innerHTML,/class="pill ">LIVE/);
 card.setConfig({type:"custom:ha-ibu-biathlon-card",demo:false,entity:"sensor.biathlon"});
 card.hass={language:"en",states:{
