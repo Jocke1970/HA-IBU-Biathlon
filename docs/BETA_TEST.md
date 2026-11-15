@@ -109,3 +109,36 @@ the `frontend/` development source. Keep the existing
 For genuine 50/50 wide columns, give the card enough width in the
 dashboard (such as a Panel view or a full-width Sections arrangement).
 The card cannot override HA's available column width.
+
+## b3 – event header, course sections, range layout
+
+Version `2026.11.0b3` retains the single-bundle dashboard installation.
+Upgrading requires **only replacing the existing registered JS file** with
+`dist/HA-IBU-Biathlon.js`. Do not install the development frontend
+or create additional HA resources.
+
+- Results use a wider table with checkpoint-local ranking and gap,
+  accumulated running time, and the latest **observed course section**
+  (delta of cumulative checkpoint readings). Up to three available
+  section values appear beneath the latest split. Old replay JSONs
+  remain valid, but without `checkpoint_history` they cannot show
+  computed sections until regenerated with the updated backend.
+- The sprint's three ski laps are not fabricated: a lap number is
+  displayed only when the backend supplies `current_lap`. Official
+  checkpoint-to-lap mapping is still pending.
+- Shooting rows show measured range duration when available; an
+  ongoing elapsed duration is marked `*` as provisional. Missing shot
+  series duration and shot-to-shot gaps are shown as `–`.
+  Five verified individual timestamps are required for series/gaps.
+  Targets align bottom-right of the shooting row.
+- Name, city, country can be provided via visual editor fields
+  `competition_name`, `competition_city`, `competition_country`;
+  if no override exists, optional `race` metadata from the backend is
+  used. No race location is inferred from the race ID.
+- Use a wide panel/section in Home Assistant to view both columns
+  side-by-side. Narrow container sizes intentionally stack the panels.
+
+Retain the existing `/local/ibu/idre_120850.json` for an immediate
+visual smoke test. For actual section-time values, the offline replay
+JSON must be re-generated with updated `ibu_leaderboard_replay.py`
+and `ibu_combined_replay.py` using the user's original captures.
