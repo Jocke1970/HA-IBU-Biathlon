@@ -1,4 +1,5 @@
 export default {
+ inactiveLane:"Ej tillgänglig",
  assumedCapacity:"antaget standardantal",
  laneCapacity:"Banor",atLeast:"minst",laneCountUnknown:"Antal banor okänt",laneCountOverride:"Arenans banantal (0 = standard 30, max 30)",
  rangeLayout:"Skjutvallsvisning",laneCount:"Antal skjutbanor",emptyLane:"Ledig",rangeIn:"In på vallen",rangeOut:"Ut från vallen",elapsedRange:"Tid hittills på vallen",
