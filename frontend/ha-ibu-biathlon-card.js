@@ -275,7 +275,7 @@ class IbuBiathlonCard extends HTMLElement {
         <div class="range-secondary">
           <div class="range-time in"><span class="minor">${escapeHtml(t.rangeIn)}</span>${escapeHtml(inTime)}</div>
           <div class="range-intervals"><span class="minor">${escapeHtml(t.shotIntervals)}</span>
-            ${escapeHtml(intervals)} ${seriesTime!=="–"?`<span class="minor">(${escapeHtml(t.seriesTime)} ${escapeHtml(seriesTime)})</span>`:""}
+            ${escapeHtml(intervals)} <span class="minor">${escapeHtml(t.seriesTime)}: ${escapeHtml(seriesTime)}</span>
           </div>
           <div class="range-time out"><span class="minor">${escapeHtml(t.rangeOut)}</span>${escapeHtml(outTime)}</div>
         </div>
