@@ -8,6 +8,29 @@ from ibu_combined_replay import joined_state
 
 
 class CombinedTests(unittest.TestCase):
+    def test_combined_hides_future_dnf_then_preserves_terminal_status(self):
+        with TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            merged = base / "merged.json"
+            merged.write_text(json.dumps([
+                {"race_id": "2854", "class_id": "women", "athlete_id": "grete",
+                 "bib": 23, "name": "Grete Gaim", "nation": "EST",
+                 "result_status": "DNF", "source_status_code": 101,
+                 "result_status_observed_utc": "2026-11-15T12:36:43+00:00",
+                 "checkpoints": []}
+            ]), encoding="utf-8")
+            events = base / "events.jsonl"
+            events.write_text("", encoding="utf-8")
+            earlier = joined_state(datetime.fromisoformat("2026-11-15T12:08:50"),
+                                   merged=merged, event_files=[events])
+            self.assertEqual(earlier["classes"]["women"][0]["display_status"],
+                             "no_verified_passing")
+            self.assertIsNone(earlier["classes"]["women"][0]["result_status"])
+            later = joined_state(datetime.fromisoformat("2026-11-15T13:40:00"),
+                                 merged=merged, event_files=[events])
+            self.assertEqual(later["classes"]["women"][0]["display_status"], "DNF")
+            self.assertEqual(later["classes"]["women"][0]["shooting_range_rows"], 0)
+
     def test_shooting_and_checkpoint_associate_by_athlete(self):
         with TemporaryDirectory() as tmp:
             base = Path(tmp)
