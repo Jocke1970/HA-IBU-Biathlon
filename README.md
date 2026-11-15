@@ -125,3 +125,39 @@ Offline tests (if using the full Git checkout):
 python -m unittest discover -s tools -p 'test_elite_rest_browser_capture.py'
 python -m unittest discover -s tools -p 'test_signalr_browser_capture.py'
 ```
+
+## Offline REST + SignalR merge (dev only)
+
+The experimental `tools/elite_merge_offline.py` combines local saved REST
+checkpoint snapshots and SignalR shooting events by `RaceID` + `AthleteID`.
+It does **not** fetch any new data, modify the original captures or guess
+missing shot times. It retains checkpoint-specific ranks and never promotes
+them to an overall live leaderboard. `ipos` remains class-specific until
+the official station labels are mapped.
+
+Example on a Linux Mint checkout, with your own paths:
+
+```bash
+python tools/elite_merge_offline.py \
+  --rest captures/rest_MEN/rest_snapshots.jsonl captures/rest_WOMEN/rest_snapshots.jsonl \
+  --events captures/browser_MEN/events.jsonl \
+  --out captures/merged_idre
+python -m unittest discover -s tools -p 'test_elite_merge_offline.py'
+```
+
+Files produced: `athlete_summary.json`, `athlete_summary.csv`,
+`quality_report.json`. CSV contains a compact overview. JSON retains
+each checkpoint and shooting series, plus flags for invalid or missing data.
+There is no women's shooting telemetry in the current local collection, so
+those athletes will correctly show a missing-shooting flag.
+
+`range_seconds` is derived from `OutTime - InTime` when both exist.
+`first_to_last_shot_seconds` is only computed if at least two individual
+timestamped shots are actually present. Neither quantity is automatically
+equal to the provider's official 'ski time' or 'shoot time'. Public REST and
+SignalR timestamps have not yet been independently verified for timezone
+semantics, so timestamp text is preserved in the report.
+
+This is a research utility on the **dev** branch, not a beta or stable
+Home Assistant release. Run regression tests and review the quality report
+before considering promotion to beta.
