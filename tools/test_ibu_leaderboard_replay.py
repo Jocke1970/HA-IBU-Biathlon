@@ -46,6 +46,30 @@ class LeaderboardTests(unittest.TestCase):
         after = build_snapshot("observed", datetime.fromisoformat("2026-11-15T12:11:00"), [path])
         self.assertEqual(after["classes"]["men"][0]["last_checkpoint"]["elapsed_ms"], 170000)
 
+    def test_received_future_passing_never_affects_station_rank(self):
+        early = {"endpoint": "startlist", "race_id": "2854",
+                 "captured_utc": "2026-11-15T11:00:00+00:00",
+                 "payload": {"Data": [
+                     self.athlete("a", "men", 101, 180000, "cp"),
+                     self.athlete("b", "men", 102, 170000, "cp")]}}
+        row_a = self.athlete("a", "men", 101, 180000, "cp")
+        row_a["Time"]["PassTime"] = "2026-11-15T12:03:00"
+        row_b = self.athlete("b", "men", 102, 170000, "cp")
+        row_b["Time"]["PassTime"] = "2026-11-15T12:20:00"
+        results = {"endpoint": "results", "race_id": "2854",
+                   "class_id": "men", "ipos": "1",
+                   "captured_utc": "2026-11-15T11:04:00+00:00",
+                   "payload": {"Data": [row_a, row_b]}}
+        path = self.snapshots([early, results])
+        state = build_snapshot("observed", datetime.fromisoformat("2026-11-15T12:05:00"),
+                               [path])
+        by_id = {p["athlete_id"]: p for p in state["classes"]["men"]}
+        self.assertEqual(by_id["a"]["last_checkpoint"]["checkpoint_position"], 1)
+        self.assertEqual(by_id["a"]["last_checkpoint"]["comparable_athletes"], 1)
+        self.assertIsNone(by_id["b"]["last_checkpoint"])
+        self.assertEqual(len(state["checkpoint_groups"]), 1)
+        self.assertEqual(next(iter(state["checkpoint_groups"].values()))["comparable_athletes"], 1)
+
     def test_rank_only_among_same_class_and_station(self):
         def a(id, cls, bib, station, elapsed):
             return {"race_id": "2854", "athlete_id": id, "class_id": cls,
@@ -67,6 +91,8 @@ class LeaderboardTests(unittest.TestCase):
         self.assertEqual(men["a"]["last_checkpoint"]["checkpoint_diff_ms"], 20000)
         self.assertEqual(men["c"]["last_checkpoint"]["checkpoint_position"], 1)
         self.assertIsNone(men["c"]["overall_position"])
+        self.assertEqual(result["athlete_list_sort"], "bib_ascending_not_overall_position")
+        self.assertEqual(len(result["checkpoint_groups"]), 3)
         self.assertEqual(result["classes"]["women"][0]["last_checkpoint"]["checkpoint_position"], 1)
 
     def test_reconstructed_no_future_passings_and_ties(self):
