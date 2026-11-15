@@ -223,6 +223,7 @@ def checkpoint_state(people, readings, at, mode, finish_stations=()):
         display_person["result_status"] = explicit_status
         if explicit_status is None:
             display_person["source_status_code"] = None
+            display_person["result_status_observed_utc"] = None
         classes[key[1]].append({
             **display_person,
             "status": explicit_status if explicit_status else (
