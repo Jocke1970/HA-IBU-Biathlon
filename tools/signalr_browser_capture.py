@@ -89,7 +89,8 @@ def compact_record(payload, race_id):
         "out_time": obj.get("OutTime"),
         "shots": [
             {"number": n, "hit": obj[f"Target{n}"].get("Hit"),
-             "time": target_shot_time(obj[f"Target{n}"])}
+             "time": target_shot_time(obj[f"Target{n}"]),
+             "shoot_runtime": obj[f"Target{n}"].get("ShootRunTime")}
             for n in range(1, 9)
             if isinstance(obj.get(f"Target{n}"), dict)
             and target_shot_time(obj[f"Target{n}"])
