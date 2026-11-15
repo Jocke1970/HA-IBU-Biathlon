@@ -62,6 +62,13 @@ class CombinedTests(unittest.TestCase):
             self.assertIsNone(state["classes"]["men"][0]["overall_position"])
             self.assertEqual(len(state["checkpoint_groups"]), 1)
             self.assertFalse(state["classes"]["men"][0]["shooting_presence_confirmed"])
+            self.assertEqual(state["sources"]["results"]["provider_id"], "ccresult")
+            self.assertEqual(state["sources"]["shooting"]["provider_id"], "ccresult")
+            self.assertEqual(state["sources"]["shooting"]["last_recorded_receipt_local"],
+                             "2026-11-15T12:03:05")
+            self.assertEqual(state["sources"]["ibu"]["connection_state"],
+                             "not_implemented")
+            self.assertFalse(state["sources"]["results"]["live_verified"])
 
 
 if __name__ == "__main__":
