@@ -120,7 +120,7 @@ class MergeTests(unittest.TestCase):
             self.assertEqual(rows[0]["nation"], "SWE")
             self.assertEqual(rows[0]["shootings"][0]["range_seconds"], 40.0)
             self.assertEqual(rows[0]["shootings"][0]["first_to_last_shot_seconds"], None)
-            self.assertEqual(rows[0]["shootings"][0]["observed_counts"], [1, 5])
+            self.assertEqual(rows[0]["shootings"][0]["observed_counts"], [0, 1, 5])
             self.assertIn("shoot_1_individual_shot_timestamps_missing",
                           rows[0]["quality_flags"])
             self.assertIn("shoot_1_reset_after_shots", rows[0]["quality_flags"])
