@@ -1,0 +1,46 @@
+name: HA Biathlon validation
+on:
+  push:
+    branches:
+      - "dev/**"
+      - "beta"
+      - "main"
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-and-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check Python offline regressions
+        run: python -m unittest discover -s tools -p "test_*.py" -v
+      - name: Check frontend source and bundled JS syntax
+        run: |
+          node --input-type=module --check < frontend/ha-ibu-biathlon-card.js
+          node --input-type=module --check < frontend/translations/sv.js
+          node --input-type=module --check < frontend/translations/en.js
+          node --check dist/HA-IBU-Biathlon.js
+      - name: Check deterministic HACS bundle
+        run: node scripts/build-card.cjs --check
+      - name: Test HA frontend surface
+        run: node scripts/test-card.cjs
+      - name: Verify HACS dashboard package shape
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          metadata=json.loads(Path("hacs.json").read_text())
+          filename=metadata["filename"]
+          assert filename=="HA-IBU-Biathlon.js"
+          assert (Path("dist") / filename).is_file()
+          assert (Path("LICENSE")).is_file()
+          print("Dashboard dist structure: OK")
+          PY
