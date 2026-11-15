@@ -1,4 +1,8 @@
 export default {
+ inactiveLane:"Unavailable",
+ assumedCapacity:"assumed standard",
+ laneCapacity:"Lanes",atLeast:"at least",laneCountUnknown:"Lane count unknown",laneCountOverride:"Venue lanes (0 = default 30, max 30)",
+ rangeLayout:"Shooting range view",laneCount:"Number of lanes",emptyLane:"Vacant",rangeIn:"Range entry",rangeOut:"Range exit",elapsedRange:"Time elapsed on range",
  rank:"Pos.", currentLap:"Lap", latestSplit:"Latest section", stationOnly:"Rank and gap apply only at the same checkpoint", lapUnavailable:"Lap boundaries not mapped yet",
  shootNumber:"Shoot",rangeTime:"Range time",seriesTime:"Shot-series time",shotIntervals:"Between shots",rangeTimeCaveat:"* Elapsed range time so far; not final",miss:"Miss",hit:"Hit",
  competitionName:"Competition", competitionCity:"City", competitionCountry:"Country", segmentHistory:"Passings / section times",
