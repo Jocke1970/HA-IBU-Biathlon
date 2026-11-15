@@ -22,6 +22,34 @@ class MergeTests(unittest.TestCase):
         self.assertIsNone(seconds_between(
             "2026-11-15T11:08:46", "2026-11-15T11:08:15"))
 
+    def test_both_classes_with_duplicate_startlists(self):
+        with tempfile.TemporaryDirectory() as temp:
+            women = {"AthleteID": "woman_2854", "ClassID": "women_2854",
+                     "Startno": 1, "StartTime": "2026-11-15T10:00:00",
+                     "Athlete": {"FormatedName": "Woman", "Nation": "SWE"}}
+            men = {"AthleteID": "man_2854", "ClassID": "men_2854",
+                   "Startno": 101, "StartTime": "2026-11-15T12:00:00",
+                   "Athlete": {"FormatedName": "Man", "Nation": "SWE"}}
+            start = {"endpoint": "startlist", "race_id": "2854",
+                     "payload": {"Data": [women, men]}}
+            women_result = {"endpoint": "results", "race_id": "2854",
+                            "class_id": "women_2854", "ipos": "18",
+                            "payload": {"Data": [{**women, "Time": {
+                                "IntermediateID": "finish_w", "RunTimeMS": 1511000}}]}}
+            men_result = {"endpoint": "results", "race_id": "2854",
+                          "class_id": "men_2854", "ipos": "21",
+                          "payload": {"Data": [{**men, "Time": {
+                              "IntermediateID": "finish_m", "RunTimeMS": 1672000}}]}}
+            rest_a = self.write(temp, "women.jsonl", [start, women_result])
+            rest_b = self.write(temp, "men.jsonl", [start, men_result])
+            rows, report = merge([rest_a, rest_b], [])
+            self.assertEqual(len(rows), 2)
+            self.assertEqual(report["athletes"], 2)
+            self.assertEqual(report["distinct_checkpoints"], 2)
+            self.assertEqual(report["rest_snapshots"], 4)
+            self.assertEqual({r["class_id"]: r["checkpoints"][0]["ipos"] for r in rows},
+                             {"women_2854": "18", "men_2854": "21"})
+
     def test_late_hour_shift_does_not_replace_valid_shooting_times(self):
         with tempfile.TemporaryDirectory() as temp:
             start = {"endpoint": "startlist", "race_id": "2854",
