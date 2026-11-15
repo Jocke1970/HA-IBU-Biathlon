@@ -2,6 +2,7 @@
 (()=>{
 "use strict";
 const sv = {
+ shootingCompleteWaitingExit:"Skjutning klar · utpassering ej bekräftad",shootingExitUnknown:"På vallen · utpassering ej bekräftad",shootingActive:"På vallen",
  inactiveLane:"Ej tillgänglig",
  assumedCapacity:"antaget standardantal",
  laneCapacity:"Banor",atLeast:"minst",laneCountUnknown:"Antal banor okänt",laneCountOverride:"Arenans banantal (0 = standard 30, max 30)",
@@ -28,6 +29,7 @@ const sv = {
 };
 
 const en = {
+ shootingCompleteWaitingExit:"Shooting complete · exit unconfirmed",shootingExitUnknown:"On range · exit unconfirmed",shootingActive:"On range",
  inactiveLane:"Unavailable",
  assumedCapacity:"assumed standard",
  laneCapacity:"Lanes",atLeast:"at least",laneCountUnknown:"Lane count unknown",laneCountOverride:"Venue lanes (0 = default 30, max 30)",
@@ -56,7 +58,7 @@ const en = {
 
 
 
-const VERSION = "2026.11.0-dev.9";
+const VERSION = "2026.11.0-dev.10";
 const type = "custom:ha-ibu-biathlon-card";
 const escapeHtml = (v) => String(v ?? "").replace(/[&<>"']/g, c => (
   {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -360,7 +362,7 @@ class IbuBiathlonCard extends HTMLElement {
         <div class="range-note">${escapeHtml(s.shots_count??0)} ${escapeHtml(t.shots)} ·
           ${escapeHtml(s.missed??0)} ${escapeHtml(t.misses)}
           ${outTime==="–" && elapsedRange!=="–"?" · "+escapeHtml(t.elapsedRange)+": "+escapeHtml(elapsedRange):""}
-          · ${escapeHtml(s.state||"")}
+          · ${escapeHtml(s.state==="shooting_complete_exit_unconfirmed"?t.shootingCompleteWaitingExit:s.state==="active_unconfirmed"?t.shootingExitUnknown:s.state==="active"?t.shootingActive:(s.state||""))}
         </div>
       </div>`;
     }).join("")}</div>`:`<div class="error">${escapeHtml(t.noRange)}</div>`;
