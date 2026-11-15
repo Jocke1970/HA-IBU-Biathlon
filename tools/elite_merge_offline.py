@@ -133,6 +133,7 @@ def merge(rest_paths, events_paths):
     shooting_state = {}
     counts = defaultdict(set)
     shooting_resets = set()
+    shooting_clock_corrections = set()
     for event in read_jsonl(events_paths):
         stats["signalr_events"] += 1
         if event.get("kind") != "shooting":
@@ -161,7 +162,31 @@ def merge(rest_paths, events_paths):
         elif previous is None or (event.get("captured_utc") or "", event.get("db_id") or 0) >= (
             previous.get("captured_utc") or "", previous.get("db_id") or 0
         ):
-            shooting_state[key] = event
+            chosen = event
+            # Observed in Idre: a late result correction retained the same
+            # five-shot result but rewrote both wall-clock timestamps exactly
+            # one hour earlier. Prefer timestamps from the preceding message
+            # when it reports the SAME completed series and both fields move
+            # by exactly one hour. Do not alter the shot result or raw input.
+            if previous is not None and (
+                previous.get("sum_shooted") == event.get("sum_shooted") == 5
+                and previous.get("shoot_string") == event.get("shoot_string")
+                and previous.get("missed") == event.get("missed")
+                and previous.get("lane") == event.get("lane")
+                and previous.get("out_time") and event.get("out_time")
+            ):
+                old_in, new_in = parse_time(previous.get("in_time")), parse_time(event.get("in_time"))
+                old_out, new_out = parse_time(previous.get("out_time")), parse_time(event.get("out_time"))
+                if all((old_in, new_in, old_out, new_out)):
+                    in_shift = (new_in - old_in).total_seconds()
+                    out_shift = (new_out - old_out).total_seconds()
+                    if abs(in_shift + 3600) < 0.02 and abs(out_shift + 3600) < 0.02:
+                        chosen = dict(event)
+                        chosen["in_time"] = previous["in_time"]
+                        chosen["out_time"] = previous["out_time"]
+                        shooting_clock_corrections.add(key)
+                        warnings["shooting_late_hour_shift"] += 1
+            shooting_state[key] = chosen
         stats["identified_shooting_updates"] += 1
 
     for (race_id, athlete_id, shoot_nr), event in shooting_state.items():
@@ -173,6 +198,8 @@ def merge(rest_paths, events_paths):
         shot_times = sorted(x["time"] for x in shots if isinstance(x, dict) and x.get("time"))
         if (race_id, athlete_id, shoot_nr) in shooting_resets:
             person["quality_flags"].append(f"shoot_{shoot_nr}_reset_after_shots")
+        if (race_id, athlete_id, shoot_nr) in shooting_clock_corrections:
+            person["quality_flags"].append(f"shoot_{shoot_nr}_late_hour_shift")
         shooting = {
             "shoot_nr": shoot_nr, "lane": event.get("lane"),
             "prone": event.get("prone"),
