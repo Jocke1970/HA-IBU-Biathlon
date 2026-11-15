@@ -74,6 +74,7 @@ def merge(rest_paths, events_paths):
                 "race_id": key[0], "athlete_id": key[1],
                 "bib": None, "name": None, "nation": None, "class_id": None,
                 "start_time": None, "result_status": None, "source_status_code": None,
+                "result_status_observed_utc": None,
                 "checkpoints": [], "shootings": [],
                 "quality_flags": []
             }
@@ -111,6 +112,11 @@ def merge(rest_paths, events_paths):
             if source_status in STATUS_LABELS:
                 person["source_status_code"] = source_status
                 person["result_status"] = STATUS_LABELS[source_status]
+                received = parse_time(frame.get("captured_utc"))
+                if received is not None and received.tzinfo is not None:
+                    previous_seen = parse_time(person["result_status_observed_utc"])
+                    if previous_seen is None or received < previous_seen:
+                        person["result_status_observed_utc"] = frame["captured_utc"]
             timing = item.get("Time")
             if not isinstance(timing, dict):
                 continue
@@ -276,6 +282,7 @@ def main():
             json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
         columns = ["race_id", "class_id", "athlete_id", "bib", "name", "nation",
                    "start_time", "result_status", "source_status_code",
+                   "result_status_observed_utc",
                    "checkpoint_count", "latest_checkpoint_ipos",
                    "latest_runtime_ms", "shoot_1_range_s", "shoot_1_missed",
                    "shoot_2_range_s", "shoot_2_missed", "quality_flags"]
@@ -290,6 +297,7 @@ def main():
                     "athlete_id": a["athlete_id"], "bib": a["bib"],
                     "name": a["name"], "nation": a["nation"], "start_time": a["start_time"],
                     "result_status": a["result_status"], "source_status_code": a["source_status_code"],
+                    "result_status_observed_utc": a["result_status_observed_utc"],
                     "checkpoint_count": len(cps),
                     "latest_checkpoint_ipos": cps[-1]["ipos"] if cps else "",
                     "latest_runtime_ms": cps[-1]["runtime_ms"] if cps else "",
