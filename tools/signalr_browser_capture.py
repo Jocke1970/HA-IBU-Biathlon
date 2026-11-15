@@ -130,7 +130,8 @@ def main():
                     print(f"WebSocket detected on host: {host or '(unknown)'}", flush=True)
                     # Allow known result-provider domains; ignore unrelated sites.
                     if not (host == "ccresult.com" or host.endswith(".ccresult.com")
-                            or host == "nsftiming.no" or host.endswith(".nsftiming.no")):
+                            or host == "nsftiming.no" or host.endswith(".nsftiming.no")
+                            or host == "sr-sgtiming.service.signalr.net"):
                         print("Ignored unrelated WebSocket host.", flush=True)
                         return
                     print("Timing WebSocket connected (address withheld).", flush=True)
