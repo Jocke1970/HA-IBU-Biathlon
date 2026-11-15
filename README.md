@@ -1,5 +1,12 @@
 # HA-IBU-Biathlon
 
+### Architecture (development sketch)
+
+![HA-IBU-Biathlon architecture schematic, not a Home Assistant screenshot](docs/architecture.svg)
+
+*This diagram is an architecture sketch, **not** a Home Assistant screenshot. Actual UI screenshots will be added after a beta card has been exercised in Home Assistant.*
+
+
 Research project for a future Home Assistant biathlon calendar and live-results integration.
 
 **Current stage: data collection only.** No Home Assistant integration or live UI is implemented or verified.
