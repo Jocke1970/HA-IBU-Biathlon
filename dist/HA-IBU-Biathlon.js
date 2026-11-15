@@ -56,7 +56,7 @@ const en = {
 
 
 
-const VERSION = "2026.11.0-dev.8";
+const VERSION = "2026.11.0-dev.9";
 const type = "custom:ha-ibu-biathlon-card";
 const escapeHtml = (v) => String(v ?? "").replace(/[&<>"']/g, c => (
   {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -115,7 +115,9 @@ const css = `
   .panels {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
   .panels.stacked,.panels.compact {grid-template-columns:1fr}
   .panel {min-width:0;border:1px solid var(--divider-color);border-radius:12px;padding:16px}
-  .panel h3 {margin:0 0 10px;font-size:.91rem}
+  .panel h3 {margin:0;font-size:1.05rem;font-weight:750;color:var(--primary-text-color,#161616)}
+  .panel-heading {display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:6px 14px;margin-bottom:10px}
+  .panel-heading .clock {margin-left:auto;text-align:right;font-size:.74rem;font-variant-numeric:tabular-nums}
   .entry {display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px;padding:8px 0;border-top:1px solid var(--divider-color);font-size:.84rem}
   .entry:first-of-type {border-top:0}
   .result-scroll {overflow-x:auto;margin-top:12px}
@@ -128,7 +130,9 @@ const css = `
   .results-table .same-station {font-weight:650}
   .range-board {margin-top:12px}
   .range-row {border-top:1px solid var(--divider-color);padding:10px 0}
-  .range-row.empty {padding:5px 0;min-height:16px;opacity:.6}
+  .range-row.empty {padding:5px 8px;min-height:16px;opacity:1;
+    background:color-mix(in srgb,var(--success-color,#2e7d32) 14%,var(--card-background-color,#fff));
+    border-radius:5px;margin:2px 0;color:var(--primary-text-color,#161616)}
   .range-row.unavailable {opacity:.32;background:var(--secondary-background-color);border-radius:5px;padding:5px 8px}
   .range-row.unavailable .range-athlete {text-decoration:none}
   .range-primary {display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px}
@@ -142,7 +146,9 @@ const css = `
   .range-intervals {min-width:0;text-align:center;font-variant-numeric:tabular-nums}
   .range-secondary .out {text-align:right}
   .range-note {margin-top:5px;font-size:.68rem;color:var(--biathlon-muted)}
-  .range-row.empty .range-athlete {color:var(--biathlon-muted)}
+  .range-row.empty .range-athlete {color:var(--primary-text-color,#161616);font-weight:500}
+  .range-row.empty .range-athlete strong {font-weight:800}
+  .range-row.unavailable .range-athlete strong {font-weight:800}
   @container (max-width: 1199px) {
     .range-secondary {grid-template-columns:1fr auto;gap:8px}
     .range-intervals {grid-column:1/-1;grid-row:2;text-align:right}
@@ -316,9 +322,7 @@ class IbuBiathlonCard extends HTMLElement {
         return shoots.length?shoots.map(shoot=>({lane,shoot})):[{lane,shoot:null,unavailable:lane>availableLaneCount.count}];
       }).flat(),...unknown];
     })();
-    const laneCountLabel=`${t.laneCapacity}: ${availableLaneCount.count}${availableLaneCount.assumed?" ("+t.assumedCapacity+")":""}`;
     const lanes=laneRows.length? `<div class="range-board">
-      <div class="minor">${escapeHtml(laneCountLabel)}</div>
       ${laneRows.map(({lane,shoot:s,unavailable})=>{
       const laneName=`${t.lane} ${lane==null?"–":lane}`;
       if(!s)return `<div class="range-row ${unavailable?"unavailable":"empty"}"><div class="range-primary">
@@ -382,7 +386,7 @@ class IbuBiathlonCard extends HTMLElement {
       <div class="source-line"><span>${escapeHtml(t.source)}: ${sourceLine("results")}</span><span>${escapeHtml(classId||"")}</span></div>
       <div class="panels ${["stacked","compact"].includes(config.layout)?config.layout:""}">
       <section class="panel"><h3>${escapeHtml(t.results)}</h3>${showClock("results")}${results}</section>
-      <section class="panel"><h3>${escapeHtml(t.range)}</h3>${showClock("shooting")}${lanes}</section>
+      <section class="panel"><div class="panel-heading"><h3>${escapeHtml(t.range)}</h3>${showClock("shooting")}</div>${lanes}</section>
       </div>${replayMessage}${detail}${config.show_version?`<div class="notice">${escapeHtml(t.version)} ${VERSION}</div>`:""}
     </ha-card>`;
   }
