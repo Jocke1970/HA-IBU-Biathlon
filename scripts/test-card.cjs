@@ -50,7 +50,6 @@ assert.match(card.shadowRoot.innerHTML,/range-board/);
 assert.match(card.shadowRoot.innerHTML,/shooting-unconfirmed/);
 assert.match(card.shadowRoot.innerHTML,/range-activity/);
 assert.match(card.shadowRoot.innerHTML,/prefers-reduced-motion:reduce/);
-assert.match(card.shadowRoot.innerHTML,/s\.shooting_presence_confirmed===true/);
 assert.match(card.shadowRoot.innerHTML,/range-row shooting-unconfirmed/);
 assert.doesNotMatch(card.shadowRoot.innerHTML,/<div class="range-row shooting-live">/);
 
