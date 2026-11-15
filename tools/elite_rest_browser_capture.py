@@ -108,7 +108,9 @@ def main():
                     return
                 try:
                     # Avoid capturing arbitrary content types or huge responses.
-                    if "json" not in response.header_value("content-type").lower():
+                    content_type = response.header_value("content-type") or ""
+                    if "json" not in content_type.lower():
+                        print(f"Skipped {meta['endpoint']} (content-type missing or not JSON)", flush=True)
                         return
                     body = response.body()
                     if len(body) > MAX_BYTES:
@@ -134,7 +136,9 @@ def main():
                           f"records={row_count}", flush=True)
                 except Exception as exc:
                     counts["errors"] += 1
-                    print(f"Failed to parse allowed response ({type(exc).__name__})", flush=True)
+                    print(f"Failed {meta['endpoint']} race={meta['race_id']} "
+                          f"class={meta.get('class_id', '-')} ipos={meta.get('ipos', '-')} "
+                          f"({type(exc).__name__})", flush=True)
 
             context.on("response", received)
             page = context.new_page()
