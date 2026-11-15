@@ -1,7 +1,7 @@
 import sv from "./translations/sv.js";
 import en from "./translations/en.js";
 
-const VERSION = "2026.11.0-dev.9";
+const VERSION = "2026.11.0-dev.10";
 const type = "custom:ha-ibu-biathlon-card";
 const escapeHtml = (v) => String(v ?? "").replace(/[&<>"']/g, c => (
   {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -305,7 +305,7 @@ class IbuBiathlonCard extends HTMLElement {
         <div class="range-note">${escapeHtml(s.shots_count??0)} ${escapeHtml(t.shots)} ·
           ${escapeHtml(s.missed??0)} ${escapeHtml(t.misses)}
           ${outTime==="–" && elapsedRange!=="–"?" · "+escapeHtml(t.elapsedRange)+": "+escapeHtml(elapsedRange):""}
-          · ${escapeHtml(s.state||"")}
+          · ${escapeHtml(s.state==="shooting_complete_exit_unconfirmed"?t.shootingCompleteWaitingExit:s.state==="active_unconfirmed"?t.shootingExitUnknown:s.state==="active"?t.shootingActive:(s.state||""))}
         </div>
       </div>`;
     }).join("")}</div>`:`<div class="error">${escapeHtml(t.noRange)}</div>`;
