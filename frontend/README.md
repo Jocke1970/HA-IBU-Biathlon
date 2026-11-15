@@ -245,3 +245,18 @@ is displayed (not discarded), signalling conflicting source/configuration.
 When no venue information is available, all 30 are possible positions under
 the explicitly marked generic international assumption; little use of lanes
 25–30 in a given race does not make them nonexistent.
+
+### Range lane retention (dev.10)
+
+Do not expire a completed shooter after a fixed delay. A shooter's five
+targets remain associated with that lane until **either** a confirmed
+`OutTime` departure is observed or a later shooter has a recorded
+arrival on that same lane. The earliest observed condition clears or
+replaces the old occupant. An earlier occupant may not reappear after
+a replacement has checked out. If neither event is recorded, the
+occupancy remains explicitly **unconfirmed**, not physically verified.
+The legacy `--hold-seconds` replay argument is retained for CLI
+compatibility but no longer controls shooting range visibility.
+
+The source timestamp's provisional time offset and the received-at
+cutoff remain in force; do not leak future departures into a replay.
