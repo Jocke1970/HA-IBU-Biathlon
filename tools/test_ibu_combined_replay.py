@@ -69,6 +69,13 @@ class CombinedTests(unittest.TestCase):
             self.assertEqual(state["sources"]["ibu"]["connection_state"],
                              "not_implemented")
             self.assertFalse(state["sources"]["results"]["live_verified"])
+            self.assertEqual(state["clocks"]["results"]["latest_event"]["value_local"],
+                             "2026-11-15T12:02:00")
+            self.assertIsNone(state["clocks"]["results"]["latest_receipt"]["value_local"])
+            self.assertEqual(state["clocks"]["shooting"]["latest_event"]["value_local"],
+                             "2026-11-15T12:03:00")
+            self.assertEqual(state["clocks"]["shooting"]["latest_receipt"]["value_local"],
+                             "2026-11-15T12:03:05")
 
 
 if __name__ == "__main__":
