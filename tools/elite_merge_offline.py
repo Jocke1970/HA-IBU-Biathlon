@@ -15,6 +15,8 @@ from pathlib import Path
 import sys
 
 MAX_VALID_MS = 24 * 60 * 60 * 1000
+# Grounded in Idre 2026-11-15 result page and raw REST statuses.
+STATUS_LABELS = {101: "DNF", 102: "DNS"}
 
 
 def read_jsonl(paths):
@@ -71,7 +73,8 @@ def merge(rest_paths, events_paths):
             athletes[key] = {
                 "race_id": key[0], "athlete_id": key[1],
                 "bib": None, "name": None, "nation": None, "class_id": None,
-                "start_time": None, "checkpoints": [], "shootings": [],
+                "start_time": None, "result_status": None, "source_status_code": None,
+                "checkpoints": [], "shootings": [],
                 "quality_flags": []
             }
         return athletes[key]
@@ -104,6 +107,10 @@ def merge(rest_paths, events_paths):
                 classes[str(class_id)].add(str(athlete_id))
             if endpoint != "results":
                 continue
+            source_status = item.get("Status")
+            if source_status in STATUS_LABELS:
+                person["source_status_code"] = source_status
+                person["result_status"] = STATUS_LABELS[source_status]
             timing = item.get("Time")
             if not isinstance(timing, dict):
                 continue
@@ -223,7 +230,7 @@ def merge(rest_paths, events_paths):
 
     for person in athletes.values():
         person["shootings"].sort(key=lambda s: s["shoot_nr"])
-        if not person["checkpoints"]:
+        if not person["checkpoints"] and person["result_status"] not in ("DNF", "DNS"):
             person["quality_flags"].append("no_valid_checkpoints")
         if not person["shootings"]:
             person["quality_flags"].append("no_shooting_events")
@@ -245,6 +252,7 @@ def merge(rest_paths, events_paths):
         "unique_shooting_series": len(shooting_state),
         "warnings": dict(warnings),
         "quality_flags": dict(Counter(f for a in output for f in a["quality_flags"])),
+        "result_statuses": dict(Counter(a["result_status"] for a in output if a["result_status"])),
         "note": "All checkpoint runtimes are elapsed; pass/in/out times remain source-local timestamps. "
                 "RankClass is checkpoint-local, not a live overall ranking. "
                 "ShootTime here means first-to-last shot only when individual shot timestamps exist."
@@ -267,7 +275,8 @@ def main():
         (target / "quality_report.json").write_text(
             json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
         columns = ["race_id", "class_id", "athlete_id", "bib", "name", "nation",
-                   "start_time", "checkpoint_count", "latest_checkpoint_ipos",
+                   "start_time", "result_status", "source_status_code",
+                   "checkpoint_count", "latest_checkpoint_ipos",
                    "latest_runtime_ms", "shoot_1_range_s", "shoot_1_missed",
                    "shoot_2_range_s", "shoot_2_missed", "quality_flags"]
         with (target / "athlete_summary.csv").open("w", encoding="utf-8", newline="") as f:
@@ -280,6 +289,7 @@ def main():
                     "race_id": a["race_id"], "class_id": a["class_id"],
                     "athlete_id": a["athlete_id"], "bib": a["bib"],
                     "name": a["name"], "nation": a["nation"], "start_time": a["start_time"],
+                    "result_status": a["result_status"], "source_status_code": a["source_status_code"],
                     "checkpoint_count": len(cps),
                     "latest_checkpoint_ipos": cps[-1]["ipos"] if cps else "",
                     "latest_runtime_ms": cps[-1]["runtime_ms"] if cps else "",
