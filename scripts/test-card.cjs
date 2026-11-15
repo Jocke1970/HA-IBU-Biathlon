@@ -18,7 +18,17 @@ const document={createElement:name=>{
   return new Klass();
 }};
 class CustomEvent {constructor(type,options){this.type=type;this.detail=options.detail;}}
-vm.runInNewContext(content,{HTMLElement:Element,customElements,window,document,CustomEvent});
+const requests=[];
+const fetch=(url)=>{requests.push(url);return Promise.resolve({
+  ok:true,json:async()=>({
+    at:"2026-11-15T12:08:50", backend_type:"offline_joined_replay",
+    classes:{men:[{bib:101,name:"Idre Offline",nation:"SWE",
+      status:"passed_checkpoint",last_checkpoint:{ipos:"5",elapsed_ms:455200}}]},
+    shooting_range:[],sources:{results:{provider_name:"CCResult",live_verified:false},
+    shooting:{provider_name:"CCResult",live_verified:false}},
+    clocks:{results:{},shooting:{}}
+  })});};
+vm.runInNewContext(content,{HTMLElement:Element,customElements,window,document,CustomEvent,fetch});
 const Card=registry.get("ha-ibu-biathlon-card");
 const Editor=registry.get("ha-ibu-biathlon-card-editor");
 assert.ok(Card&&Editor,"HA card and visual editor registered");
@@ -50,3 +60,20 @@ assert.doesNotMatch(card.shadowRoot.innerHTML,/<script>alert\(1\)<\/script>/);
 assert.match(card.shadowRoot.innerHTML,/Results/);
 assert.equal(window.customCards.length,1);
 console.log("HA frontend smoke test: registration, editor, languages, demo, safe content OK");
+
+async function testReplay(){
+  const replayCard=new Card();
+  replayCard.setConfig({replay_url:"/local/ibu/idre.json",demo:false});
+  replayCard.hass={language:"sv",states:{}};
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(requests.length,1);
+  assert.equal(requests[0],"/local/ibu/idre.json");
+  assert.match(replayCard.shadowRoot.innerHTML,/Idre Offline/);
+  assert.match(replayCard.shadowRoot.innerHTML,/REPLAY/);
+  assert.doesNotMatch(replayCard.shadowRoot.innerHTML,/LIVE<\/span>/);
+  replayCard.setConfig({replay_url:"https://untrusted.example/replay.json",demo:false});
+  assert.equal(requests.length,1,"No fetch for external source");
+  assert.match(replayCard.shadowRoot.innerHTML,/Only \/local/);
+  console.log("Local JSON fixture: loading, provenance and URL restriction OK");
+}
+testReplay().catch(e=>{console.error(e);process.exitCode=1;});
