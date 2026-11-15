@@ -139,7 +139,8 @@ def from_merged(path, at):
             "race_id": key[0], "class_id": key[1], "athlete_id": key[2],
             "bib": a.get("bib"), "name": a.get("name"), "nation": a.get("nation"),
             "result_status": a.get("result_status"),
-            "source_status_code": a.get("source_status_code")
+            "source_status_code": a.get("source_status_code"),
+            "result_status_observed_utc": a.get("result_status_observed_utc")
         }
         for cp in a.get("checkpoints", []):
             elapsed = cp.get("runtime_ms")
@@ -212,8 +213,18 @@ def checkpoint_state(people, readings, at, mode, finish_stations=()):
                 "position_scope": "same_class_and_checkpoint_only",
             }
         explicit_status = person.get("result_status")
+        if mode == "reconstructed" and explicit_status:
+            # The merged file is a final-state artifact. A terminal status
+            # is not known during replay until a source response was received.
+            status_received = datetime_local(person.get("result_status_observed_utc"), utc_expected=True)
+            if status_received is None or status_received > at:
+                explicit_status = None
+        display_person = dict(person)
+        display_person["result_status"] = explicit_status
+        if explicit_status is None:
+            display_person["source_status_code"] = None
         classes[key[1]].append({
-            **person,
+            **display_person,
             "status": explicit_status if explicit_status else (
                 "finished" if latest and latest["station"] in finish_stations else (
                     "passed_checkpoint" if latest else "no_verified_passing")),
