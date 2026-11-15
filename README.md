@@ -258,3 +258,52 @@ remain unavailable. The tool never surfaces a later message or a future
 means the last received record did not contain a verified exit; it is not
 proof of current physical presence. This remains offline research software,
 not a finished Home Assistant integration.
+
+
+### Checkpoint leaderboard replay (experimental, dev only)
+
+`tools/ibu_leaderboard_replay.py` produces a provisional livetiming
+snapshot for the **left-hand** UI panel: athlete, nation, most recent
+known checkpoint, accumulated elapsed time, class/checkpoint-local
+rank and difference to the fastest observed runner at that station.
+
+Two deliberately distinct modes:
+
+- **reconstructed**: uses final merged records and their `PassTime`
+  timestamps to reconstruct historical passing order. Helpful for offline
+  presentation tests; it does **not** represent what the timing operator
+  knew at the time.
+- **observed**: uses only REST snapshots *received* by the requested
+  clock time (`captured_utc` converted to Europe/Stockholm). Later
+  responses cannot leak into earlier snapshots. This is the correct
+  basis for testing observed information availability, though archived
+  browser recordings only cover the checkpoints the user opened.
+
+Run with the existing recordings (filenames are from the November 15 Idre capture):
+
+```bash
+python tools/ibu_leaderboard_replay.py \
+  --mode reconstructed \
+  --merged captures/merged_idre_both/athlete_summary.json \
+  --at 2026-11-15T12:08:30 \
+  --out captures/merged_idre_both/leaderboard_reconstructed.json
+
+python tools/ibu_leaderboard_replay.py \
+  --mode observed \
+  --rest captures/rest_*/rest_snapshots.jsonl \
+  --at 2026-11-15T14:40:00 \
+  --out captures/merged_idre_both/leaderboard_observed.json
+
+python -m unittest -v test_ibu_leaderboard_replay
+```
+
+No race-wide current rank is computed because checkpoint ranks from
+different stations are not comparable. `overall_position` is null by
+design; `checkpoint_position` is derived only from observed/retrospectively
+replayed comparable station elapsed times. The sorting of athletes in the
+JSON is purely for preview, **not a reliable overall ordering**.
+
+The future HA list needs verified official station names, explicit finish
+metadata, ongoing result snapshots with the capture clock, and a policy
+for ranking mixed-progress athletes. The current data cannot establish
+all those. No UI or Home Assistant integration is implemented here.
