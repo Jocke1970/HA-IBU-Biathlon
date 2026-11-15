@@ -1,0 +1,17 @@
+export default {
+ title:"Skidskytte", results:"Resultat", range:"Skjutvallen", source:"Datakälla",
+ replay:"REPLAY", live:"LIVE", noData:"Väntar på tävlingsdata",
+ offline:"Historisk uppspelning", unknown:"Okänd", event:"Tävlingshändelse",
+ receipt:"Data mottagen", status:"Status", noRange:"Ingen åkare på vallen",
+ settings:"Kortinställningar", entity:"Entitet (med attributet livetiming)",
+ layout:"Layout", classId:"Klass-ID", timeMode:"Visa tider",
+ showFlags:"Visa nationsflaggor", showVersion:"Visa version",
+ demo:"Demoläge (utan backend)", sourceDetails:"Visa källdetaljer",
+ shots:"skott", misses:"bom", lane:"Bana", checkpoint:"Kontrollpunkt",
+ athlete:"Åkare", elapsed:"Tid", gap:"Efter", unknownStatus:"Inga verifierade passeringar",
+ compact:"Kompakt", stacked:"Vertikal", twoColumn:"Två kolumner",
+ both:"Båda", onlyEvent:"Händelse", onlyReceipt:"Mottagning",
+ noVerifiedRanking:"Placering gäller endast samma kontrollpunkt",
+ demoNotice:"DEMO – exempeldata, inte live", version:"Version", noUpdate:"Ingen mottagning registrerad",
+ sourceUnverified:"Källans tidszon ännu ej verifierad",
+};
