@@ -1,7 +1,7 @@
 import sv from "./translations/sv.js";
 import en from "./translations/en.js";
 
-const VERSION = "2026.11.0-dev.2";
+const VERSION = "2026.11.0b1";
 const type = "custom:ha-ibu-biathlon-card";
 const escapeHtml = (v) => String(v ?? "").replace(/[&<>"']/g, c => (
   {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
