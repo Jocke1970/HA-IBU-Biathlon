@@ -142,3 +142,25 @@ Retain the existing `/local/ibu/idre_120850.json` for an immediate
 visual smoke test. For actual section-time values, the offline replay
 JSON must be re-generated with updated `ibu_leaderboard_replay.py`
 and `ibu_combined_replay.py` using the user's original captures.
+
+## b4 – physical shooting-lane board
+
+Version `2026.11.0b4` replaces the shooting entry list with a 30-position
+range board. Each shooting athlete appears on the reported lane. The five
+targets align with the name on the upper row, with arrival, shot interval
+and departure timestamps below. Missing individual shot times remain dashes;
+unconfirmed departure remains a dash. No invented shot timing.
+
+The default `range_layout: lane_board` renders all 30 positions. A smaller
+venue capacity from optional source metadata (`range_metadata.lane_count`,
+`race.shooting_lanes`) or a visual editor override `lane_count: 20`
+dims lanes 21–30 as **unavailable**, distinct from normal **vacant** lanes.
+Without capacity metadata or override, 30 is an explicitly marked
+international-range assumption, not verified venue capacity. An observed
+athlete beyond a configured capacity remains visible rather than silently
+reassigned. `range_layout: occupied` is available for a compact view.
+
+Replace only the one registered HA JS file with the contents of
+`dist/HA-IBU-Biathlon.js`. The current `replay_url`, local JSON file,
+Lovelace resource URL and overall dashboard configuration remain unchanged.
+No extra translation modules or resources are required.
