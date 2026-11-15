@@ -9,6 +9,7 @@ Research project for a future Home Assistant biathlon calendar and live-results 
 - [`tools/ibu_api_probe.py`](tools/ibu_api_probe.py) — inspect IBU seasons, events, competitions, and optional race results.
 - [`tools/ibu_live_logger.py`](tools/ibu_live_logger.py) — write timestamped IBU JSONL snapshots for later comparison.
 - [`tools/elite_timing_logger.py`](tools/elite_timing_logger.py) — collect timestamped EliteTiming/NSF Timing results for the observed Idre men's race endpoint (experimental).
+- [`tools/signalr_offline.py`](tools/signalr_offline.py) — decode manually saved SignalR MessagePack hex frames, group shooting observations, and export JSONL/CSV **without any network requests**.
 
 These tools use an **unofficial/undocumented** public-facing IBU Sport API. Access, API key discovery, endpoints, and data freshness are not guaranteed. Check the provider's usage terms before polling.
 
@@ -49,3 +50,20 @@ Output folders `ibu_probe_output/`, `ibu_live_logs/`, and `elite_timing_logs/` a
 ## Development workflow
 
 Later Home Assistant work will follow `dev → beta → main`. The present tools are research utilities, not a release of an integration.
+
+## SignalR offline diagnostic
+
+Install the one extra local library:
+
+```bash
+python -m pip install msgpack
+```
+
+Paste one complete **binary message's hex string** per line in a UTF-8 text file named `frames.txt`, without WebSocket headers, cookies or connection tokens. Save it locally, then run:
+
+```bash
+python tools/signalr_offline.py frames.txt
+python -m unittest discover -s tools -p 'test_signalr_offline.py'
+```
+
+Outputs are saved under `captures/decoded/`: `messages.jsonl`, `shooting_summary.json` and `shots.csv`. Multiple snapshots of one athlete's shooting can be compared using `AthleteID` and `ShootNr`. Not every SignalR event has shooting data; fields and `Source` meanings remain provisional. **Do not commit captured frames or outputs.** This tool does not capture live network traffic; automated access is a separate unresolved permissions issue.
