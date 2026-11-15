@@ -1,7 +1,7 @@
 import sv from "./translations/sv.js";
 import en from "./translations/en.js";
 
-const VERSION = "2026.11.0-dev.5";
+const VERSION = "2026.11.0-dev.6";
 const type = "custom:ha-ibu-biathlon-card";
 const escapeHtml = (v) => String(v ?? "").replace(/[&<>"']/g, c => (
   {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -110,7 +110,7 @@ const css = `
   @media(max-width:650px){.panels{grid-template-columns:minmax(0,1fr)}}
 `;
 const defaults = {type,layout:"two_column",clock_display:"both",show_flags:true,
-  range_layout:"lane_board",lane_count:30,
+  range_layout:"lane_board",lane_count:0,
   source_details:"compact",show_version:true,demo:false,replay_url:"",
   competition_name:"",competition_city:"",competition_country:""};
 const validReplayUrl = url => typeof url === "string" &&
@@ -229,9 +229,25 @@ class IbuBiathlonCard extends HTMLElement {
       :`<div class="error">${escapeHtml(t.noData)}</div>`;
     // Fixed-lane board preserves the physical lane numbers even when empty.
     // An occupied-only view is useful for smaller screens or historic snapshots.
+    const availableLaneCount=(()=>{
+      // Only trusted structured metadata counts as confirmed physical capacity.
+      const supplied=data?.range_metadata?.lane_count??data?.race?.shooting_lanes;
+      const suppliedNumber=Number(supplied);
+      const confirmed=Number.isInteger(suppliedNumber)&&suppliedNumber>0&&suppliedNumber<=60
+        ?suppliedNumber:null;
+      const observed=Math.max(0,...range.map(x=>{
+        const lane=Number(x.lane);
+        return Number.isInteger(lane)&&lane>0&&lane<=60?lane:0;
+      }));
+      const override=Number(config.lane_count);
+      const manual=Number.isInteger(override)&&override>0&&override<=60?override:null;
+      const chosen=manual??confirmed??observed;
+      return {count:Math.max(0,chosen),confirmed:manual!==null||confirmed!==null,
+        manual:manual!==null,observed};
+    })();
     const laneRows=(()=>{
       if(config.range_layout==="occupied")return range.map(s=>({lane:s.lane,shoot:s}));
-      const n=Math.max(1,Math.min(60,Number(config.lane_count)||30));
+      const n=availableLaneCount.count;
       const byLane=new Map();
       const unknown=[];
       for(const shoot of range){
@@ -245,7 +261,12 @@ class IbuBiathlonCard extends HTMLElement {
         return shoots.length?shoots.map(shoot=>({lane,shoot})):[{lane,shoot:null}];
       }).flat(),...unknown];
     })();
-    const lanes=laneRows.length? `<div class="range-board">${laneRows.map(({lane,shoot:s})=>{
+    const laneCountLabel=availableLaneCount.count>0
+      ?`${t.laneCapacity}: ${availableLaneCount.confirmed?"":t.atLeast+" "}${availableLaneCount.count}`
+      :t.laneCountUnknown;
+    const lanes=laneRows.length? `<div class="range-board">
+      <div class="minor">${escapeHtml(laneCountLabel)}</div>
+      ${laneRows.map(({lane,shoot:s})=>{
       const laneName=`${t.lane} ${lane==null?"–":lane}`;
       if(!s)return `<div class="range-row empty"><div class="range-primary">
         <span class="range-athlete"><strong>${escapeHtml(laneName)}</strong> · ${escapeHtml(t.emptyLane)}</span>
@@ -330,7 +351,7 @@ class IbuBiathlonCardEditor extends HTMLElement {
       ["clock_display",t.timeMode,["both","event","receipt"]],
       ["range_sort","Range sort",["arrival","lane"]],
       ["range_layout",t.rangeLayout,["lane_board","occupied"]],
-      ["lane_count",t.laneCount,"number"],
+      ["lane_count",t.laneCountOverride,"number"],
       ["source_details",t.sourceDetails,["compact","expanded"]],
       ["demo",t.demo,"checkbox"],["show_flags",t.showFlags,"checkbox"],
       ["show_version",t.showVersion,"checkbox"]
