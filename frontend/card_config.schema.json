@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "HA-IBU-Biathlon card editor configuration (planned)",
-  "description": "Configuration contract for a future visual editor. Not yet a registered Home Assistant frontend card.",
+  "description": "Visual editor configuration contract for dashboard beta prototype; some planned options are not yet implemented.",
   "type": "object",
   "additionalProperties": false,
   "properties": {
@@ -94,6 +94,12 @@
     "show_version": {
       "type": "boolean",
       "default": true
+    },
+    "replay_url": {
+      "type": "string",
+      "default": "",
+      "pattern": "^$|^/local/[a-zA-Z0-9/_-]+\\.json(\\?v=[a-zA-Z0-9._-]+)?$",
+      "description": "Offline combined snapshot served by Home Assistant /config/www/. When set, overrides entity; demo overrides this setting."
     }
   },
   "required": [
