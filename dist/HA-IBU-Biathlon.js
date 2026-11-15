@@ -2,6 +2,7 @@
 (()=>{
 "use strict";
 const sv = {
+ rangeLayout:"Skjutvallsvisning",laneCount:"Antal skjutbanor",emptyLane:"Ledig",rangeIn:"In på vallen",rangeOut:"Ut från vallen",elapsedRange:"Tid hittills på vallen",
  rank:"Pl.", currentLap:"Varv", latestSplit:"Senaste sträcka", stationOnly:"Placering och eftertid gäller endast samma kontrollpunkt", lapUnavailable:"Varvgränser ännu ej mappade",
  shootNumber:"Skytte",rangeTime:"Tid på vallen",seriesTime:"Skottserietid",shotIntervals:"Mellan skotten",rangeTimeCaveat:"* Tid hittills på vallen; ej sluttid",miss:"Bom",hit:"Träff",
  competitionName:"Tävling", competitionCity:"Ort", competitionCountry:"Land", segmentHistory:"Passeringar / sträcktider",
@@ -24,6 +25,7 @@ const sv = {
 };
 
 const en = {
+ rangeLayout:"Shooting range view",laneCount:"Number of lanes",emptyLane:"Vacant",rangeIn:"Range entry",rangeOut:"Range exit",elapsedRange:"Time elapsed on range",
  rank:"Pos.", currentLap:"Lap", latestSplit:"Latest section", stationOnly:"Rank and gap apply only at the same checkpoint", lapUnavailable:"Lap boundaries not mapped yet",
  shootNumber:"Shoot",rangeTime:"Range time",seriesTime:"Shot-series time",shotIntervals:"Between shots",rangeTimeCaveat:"* Elapsed range time so far; not final",miss:"Miss",hit:"Hit",
  competitionName:"Competition", competitionCity:"City", competitionCountry:"Country", segmentHistory:"Passings / section times",
@@ -48,7 +50,7 @@ const en = {
 
 
 
-const VERSION = "2026.11.0-dev.4";
+const VERSION = "2026.11.0-dev.5";
 const type = "custom:ha-ibu-biathlon-card";
 const escapeHtml = (v) => String(v ?? "").replace(/[&<>"']/g, c => (
   {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -118,17 +120,30 @@ const css = `
   .results-table .athlete {min-width:140px}
   .results-table .athlete small {display:block;color:var(--biathlon-muted);margin-top:3px}
   .results-table .same-station {font-weight:650}
-  .range-row {border-top:1px solid var(--divider-color);padding:12px 0}
-  .range-row:first-of-type {margin-top:12px}
-  .range-head {display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:.84rem}
-  .range-body {display:grid;grid-template-columns:minmax(160px,1fr) auto;gap:16px;align-items:end;margin-top:10px}
-  .range-times {display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:14px;row-gap:5px;font-size:.77rem}
-  .range-times .value {text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-  .range-times .key {color:var(--biathlon-muted)}
-  .range-targets {display:flex;flex-direction:column;align-items:flex-end;justify-content:end;gap:4px}
-  .range-targets .targets {margin:0;gap:7px}
-  .range-targets .minor {font-size:.7rem;text-align:right}
-  @media(max-width:480px){.range-body{grid-template-columns:1fr}.range-targets{justify-self:end}}
+  .range-board {margin-top:12px}
+  .range-row {border-top:1px solid var(--divider-color);padding:10px 0}
+  .range-row.empty {padding:5px 0;min-height:16px;opacity:.6}
+  .range-primary {display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px}
+  .range-athlete {font-size:.84rem;min-width:0}
+  .range-athlete strong {font-variant-numeric:tabular-nums}
+  .range-shots {display:flex;align-items:center;gap:10px}
+  .range-shots .targets {margin:0;gap:7px}
+  .range-secondary {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr) auto;gap:12px;align-items:start;margin-top:8px;font-size:.74rem}
+  .range-time {font-variant-numeric:tabular-nums;white-space:nowrap}
+  .range-time .minor,.range-intervals .minor {display:block;margin-bottom:3px}
+  .range-intervals {min-width:0;text-align:center;font-variant-numeric:tabular-nums}
+  .range-secondary .out {text-align:right}
+  .range-note {margin-top:5px;font-size:.68rem;color:var(--biathlon-muted)}
+  .range-row.empty .range-athlete {color:var(--biathlon-muted)}
+  @container (max-width: 1199px) {
+    .range-secondary {grid-template-columns:1fr auto;gap:8px}
+    .range-intervals {grid-column:1/-1;grid-row:2;text-align:right}
+  }
+  @media(max-width:650px) {
+    .range-primary {gap:5px}
+    .range-shots .targets {gap:4px}
+    .range-shots .target {width:15px;height:15px}
+  }
   .minor,.clock,.notice {font-size:.73rem;color:var(--biathlon-muted)}
   .notice {margin-top:10px}
   .shooting {margin:8px 0}
@@ -144,6 +159,7 @@ const css = `
   @media(max-width:650px){.panels{grid-template-columns:minmax(0,1fr)}}
 `;
 const defaults = {type,layout:"two_column",clock_display:"both",show_flags:true,
+  range_layout:"lane_board",lane_count:30,
   source_details:"compact",show_version:true,demo:false,replay_url:"",
   competition_name:"",competition_city:"",competition_country:""};
 const validReplayUrl = url => typeof url === "string" &&
@@ -260,41 +276,65 @@ class IbuBiathlonCard extends HTMLElement {
       }).join("")}</tbody></table>
       <div class="minor">${escapeHtml(t.stationOnly)} · ${escapeHtml(t.lapUnavailable)}</div></div>`
       :`<div class="error">${escapeHtml(t.noData)}</div>`;
-    const lanes=range.length?range.map(s=>{
+    // Fixed-lane board preserves the physical lane numbers even when empty.
+    // An occupied-only view is useful for smaller screens or historic snapshots.
+    const laneRows=(()=>{
+      if(config.range_layout==="occupied")return range.map(s=>({lane:s.lane,shoot:s}));
+      const n=Math.max(1,Math.min(60,Number(config.lane_count)||30));
+      const byLane=new Map();
+      const unknown=[];
+      for(const shoot of range){
+        const lane=Number(shoot.lane);
+        if(!Number.isInteger(lane)||lane<1||lane>n){unknown.push({lane:shoot.lane,shoot});continue;}
+        const current=byLane.get(lane)||[];
+        current.push(shoot);byLane.set(lane,current);
+      }
+      return [...Array.from({length:n},(_,i)=>{
+        const lane=i+1,shoots=byLane.get(lane)||[];
+        return shoots.length?shoots.map(shoot=>({lane,shoot})):[{lane,shoot:null}];
+      }).flat(),...unknown];
+    })();
+    const lanes=laneRows.length? `<div class="range-board">${laneRows.map(({lane,shoot:s})=>{
+      const laneName=`${t.lane} ${lane==null?"–":lane}`;
+      if(!s)return `<div class="range-row empty"><div class="range-primary">
+        <span class="range-athlete"><strong>${escapeHtml(laneName)}</strong> · ${escapeHtml(t.emptyLane)}</span>
+      </div></div>`;
       const pattern=typeof s.shoot_string==="string"?s.shoot_string.slice(0,5):"";
       const targets=Array.from({length:5},(_,i)=>{
         const x=pattern[i];
-        return `<span class="target ${x==="x"?"miss":x==="o"?"hit":""}" aria-label="${escapeHtml(x==="x"?t.miss:x==="o"?t.hit:t.unknown)}"></span>`;
+        return `<span class="target ${x==="x"?"miss":x==="o"?"hit":""}"
+          aria-label="${escapeHtml(x==="x"?t.miss:x==="o"?t.hit:t.unknown)}"></span>`;
       }).join("");
-      const rangeTime=typeof s.range_seconds==="number" && Number.isFinite(s.range_seconds)
-        ?s.range_seconds.toFixed(1)+" s": "–";
-      const elapsedRange=typeof s.elapsed_on_range_seconds==="number" && Number.isFinite(s.elapsed_on_range_seconds)
-        ?s.elapsed_on_range_seconds.toFixed(1)+" s":"–";
       const shotTimes=Array.isArray(s.shots_with_timestamps)
         ?s.shots_with_timestamps.filter(x=>x && typeof x.time==="string" && x.time):[];
       const parsed=shotTimes.map(x=>Date.parse(x.time)).filter(Number.isFinite).sort((a,b)=>a-b);
-      const seriesTime=parsed.length===5?(parsed[4]-parsed[0])/1000:null;
-      const intervals=parsed.length===5?parsed.slice(1).map((ms,i)=>((ms-parsed[i])/1000).toFixed(1)+" s").join(" · "):"–";
+      const complete=parsed.length===5 && parsed.every((x,i)=>i===0||x>parsed[i-1]);
+      const intervals=complete?parsed.slice(1).map((ms,i)=>((ms-parsed[i])/1000).toFixed(1)+" s").join(" · "):"–";
+      const seriesTime=complete?((parsed[4]-parsed[0])/1000).toFixed(1)+" s":"–";
+      const inTime=timeOnly(s.in_time),outTime=timeOnly(s.out_time);
+      const elapsedRange=typeof s.elapsed_on_range_seconds==="number" && Number.isFinite(s.elapsed_on_range_seconds)
+        ?s.elapsed_on_range_seconds.toFixed(1)+" s":"–";
       return `<div class="range-row">
-        <div class="range-head"><div><strong>${escapeHtml(t.lane)} ${escapeHtml(s.lane??"–")}</strong> ·
-        ${config.show_flags?flag(s.nation)+" ":""}${escapeHtml(s.name||"#"+s.bib)}</div>
-        <span class="minor">${escapeHtml(t.shootNumber)} ${escapeHtml(s.shoot_nr??"–")}</span></div>
-        <div class="range-body">
-          <div class="range-times">
-            <span class="key">${escapeHtml(t.rangeTime)}</span>
-            <span class="value">${escapeHtml(rangeTime==="–"?(elapsedRange==="–"?"–":elapsedRange+" *"):rangeTime)}</span>
-            <span class="key">${escapeHtml(t.seriesTime)}</span>
-            <span class="value">${escapeHtml(seriesTime===null?"–":seriesTime.toFixed(1)+" s")}</span>
-            <span class="key">${escapeHtml(t.shotIntervals)}</span>
-            <span class="value">${escapeHtml(intervals)}</span>
-          </div>
-          <div class="range-targets"><div class="targets">${targets}</div>
-            <div class="minor">${escapeHtml(s.shots_count??0)} ${escapeHtml(t.shots)} ·
-            ${escapeHtml(s.missed??0)} ${escapeHtml(t.misses)}</div></div>
+        <div class="range-primary">
+          <span class="range-athlete"><strong>${escapeHtml(laneName)}</strong> ·
+          ${config.show_flags?flag(s.nation)+" ":""}${escapeHtml(s.name||"#"+s.bib)}
+          <span class="minor"> · ${escapeHtml(t.shootNumber)} ${escapeHtml(s.shoot_nr??"–")}</span></span>
+          <div class="range-shots"><div class="targets">${targets}</div></div>
         </div>
-        <div class="minor">${escapeHtml(s.state||"")} · ${escapeHtml(t.rangeTimeCaveat)}</div>
+        <div class="range-secondary">
+          <div class="range-time in"><span class="minor">${escapeHtml(t.rangeIn)}</span>${escapeHtml(inTime)}</div>
+          <div class="range-intervals"><span class="minor">${escapeHtml(t.shotIntervals)}</span>
+            ${escapeHtml(intervals)} <span class="minor">${escapeHtml(t.seriesTime)}: ${escapeHtml(seriesTime)}</span>
+          </div>
+          <div class="range-time out"><span class="minor">${escapeHtml(t.rangeOut)}</span>${escapeHtml(outTime)}</div>
+        </div>
+        <div class="range-note">${escapeHtml(s.shots_count??0)} ${escapeHtml(t.shots)} ·
+          ${escapeHtml(s.missed??0)} ${escapeHtml(t.misses)}
+          ${outTime==="–" && elapsedRange!=="–"?" · "+escapeHtml(t.elapsedRange)+": "+escapeHtml(elapsedRange):""}
+          · ${escapeHtml(s.state||"")}
+        </div>
       </div>`;
-    }).join(""):`<div class="error">${escapeHtml(t.noRange)}</div>`;
+    }).join("")}</div>`:`<div class="error">${escapeHtml(t.noRange)}</div>`;
     const race=data?.race||{};
     const eventName=config.competition_name||race.name||data?.competition_name||"";
     const eventCity=config.competition_city||race.city||race.location||data?.competition_city||"";
@@ -338,6 +378,8 @@ class IbuBiathlonCardEditor extends HTMLElement {
       ["layout",t.layout,["two_column","stacked","compact"]],
       ["clock_display",t.timeMode,["both","event","receipt"]],
       ["range_sort","Range sort",["arrival","lane"]],
+      ["range_layout",t.rangeLayout,["lane_board","occupied"]],
+      ["lane_count",t.laneCount,"number"],
       ["source_details",t.sourceDetails,["compact","expanded"]],
       ["demo",t.demo,"checkbox"],["show_flags",t.showFlags,"checkbox"],
       ["show_version",t.showVersion,"checkbox"]
