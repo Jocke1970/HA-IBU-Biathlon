@@ -1,7 +1,7 @@
 import sv from "./translations/sv.js";
 import en from "./translations/en.js";
 
-const VERSION = "2026.11.0-dev.10";
+const VERSION = "2026.11.0-dev.11";
 const type = "custom:ha-ibu-biathlon-card";
 const escapeHtml = (v) => String(v ?? "").replace(/[&<>"']/g, c => (
   {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -75,6 +75,26 @@ const css = `
   .results-table .same-station {font-weight:650}
   .range-board {margin-top:12px}
   .range-row {border-top:1px solid var(--divider-color);padding:10px 0}
+  /* Active shooting is a source-confirmed state only; unconfirmed replay rows stay static. */
+  .range-row.shooting-live,.range-row.shooting-unconfirmed {
+    position:relative;border-left:3px solid var(--error-color,#d33b3b);
+    padding:10px 10px 10px 13px;border-radius:6px;
+    background:color-mix(in srgb,var(--error-color,#d33b3b) 8%,var(--card-background-color,#fff));
+  }
+  .range-row.shooting-live .range-activity,.range-row.shooting-unconfirmed .range-activity {
+    display:inline-block;flex:none;width:9px;height:9px;border-radius:50%;
+    background:var(--error-color,#d33b3b);vertical-align:middle;margin-right:6px;
+  }
+  .range-row.shooting-live {animation:range-glow 2.5s ease-in-out infinite}
+  .range-row.shooting-live .range-activity {animation:range-dot-pulse 2.5s ease-in-out infinite}
+  @keyframes range-glow {
+    0%,100% {border-left-color:var(--error-color,#d33b3b)}
+    50% {border-left-color:color-mix(in srgb,var(--error-color,#d33b3b) 35%,transparent)}
+  }
+  @keyframes range-dot-pulse {0%,100%{opacity:1}50%{opacity:.35}}
+  @media (prefers-reduced-motion:reduce) {
+    .range-row.shooting-live,.range-row.shooting-live .range-activity {animation:none}
+  }
   .range-row.empty {padding:5px 8px;min-height:16px;opacity:1;
     background:color-mix(in srgb,var(--success-color,#2e7d32) 14%,var(--card-background-color,#fff));
     border-radius:5px;margin:2px 0;color:var(--primary-text-color,#161616)}
@@ -288,9 +308,10 @@ class IbuBiathlonCard extends HTMLElement {
       const inTime=timeOnly(s.in_time),outTime=timeOnly(s.out_time);
       const elapsedRange=typeof s.elapsed_on_range_seconds==="number" && Number.isFinite(s.elapsed_on_range_seconds)
         ?s.elapsed_on_range_seconds.toFixed(1)+" s":"–";
-      return `<div class="range-row">
+      const shootingLive=s.state==="active" && s.shooting_presence_confirmed===true;
+      return `<div class="range-row ${shootingLive?"shooting-live":"shooting-unconfirmed"}">
         <div class="range-primary">
-          <span class="range-athlete"><strong>${escapeHtml(laneName)}</strong> ·
+          <span class="range-athlete"><span class="range-activity" aria-hidden="true"></span><strong>${escapeHtml(laneName)}</strong> ·
           ${config.show_flags?flag(s.nation)+" ":""}${escapeHtml(s.name||"#"+s.bib)}
           <span class="minor"> · ${escapeHtml(t.shootNumber)} ${escapeHtml(s.shoot_nr??"–")}</span></span>
           <div class="range-shots"><div class="targets">${targets}</div></div>
