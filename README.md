@@ -196,3 +196,37 @@ timezone. Raw captures are never rewritten.
 Any shooting time that is unavailable stays unavailable. A 15-second
 post-`OutTime` UI retention policy is a future presentation concern and is
 not a substitute for event validation.
+
+
+### Offline live-state replay (experimental, dev only)
+
+`tools/ibu_live_state.py` reconstructs a historical event-time **snapshot**
+from the merged Idre dataset. It is not a provider-connected live service.
+
+```bash
+python tools/ibu_live_state.py \
+  --merged captures/merged_idre_both/athlete_summary.json \
+  --at 2026-11-15T12:08:30 \
+  --shooting-offset-hours 1 \
+  --hold-seconds 15 \
+  --out captures/merged_idre_both/live_state_120830.json
+
+python -m unittest discover -s tools -p 'test_ibu_live_state.py'
+```
+
+The snapshot has separately keyed classes, individual checkpoint histories,
+checkpoint-local source rank, athlete status, and a shooting range list.
+A shooting row appears at `InTime`, enters `recently_finished` at
+`OutTime`, and disappears exactly 15 seconds later. **No shot-by-shot
+progress is possible from these final merged snapshots**: hits and misses
+only become visible after `OutTime`. Replaying the original incremental
+SignalR messages will be a later backend step.
+
+The candidate one-hour SignalR-to-REST offset is explicit in the command;
+do not treat it as a universally validated provider timezone. By design,
+there is no speculative global live position: each athlete's source rank
+belongs to their latest checkpoint only, and ranks across different
+checkpoints cannot be compared. The `finished` status requires an
+explicitly verified `--finish-station` mapping; otherwise a passed
+checkpoint does not imply a finish. Missing `OutTime` leaves the range
+record in `active_unconfirmed` for later data-quality handling.
