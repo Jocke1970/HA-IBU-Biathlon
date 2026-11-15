@@ -20,6 +20,8 @@ from zoneinfo import ZoneInfo
 
 LOCAL = ZoneInfo("Europe/Stockholm")
 MAX_RUNTIME = 86_400_000
+# Status semantics confirmed against Idre 2026-11-15 provider display.
+RESULT_STATUSES = {101: "DNF", 102: "DNS"}
 
 
 def datetime_local(value, utc_expected=False):
@@ -47,6 +49,8 @@ def identity(athlete, race, class_id):
         "bib": athlete.get("Startno"),
         "name": (athlete.get("Athlete") or {}).get("FormatedName"),
         "nation": (athlete.get("Athlete") or {}).get("Nation"),
+        "result_status": RESULT_STATUSES.get(athlete.get("Status")),
+        "source_status_code": athlete.get("Status"),
     }
 
 
@@ -98,6 +102,9 @@ def from_rest(paths, at):
                         for field in ("bib", "name", "nation"):
                             if people[key][field] is None:
                                 people[key][field] = person[field]
+                        if person["result_status"]:
+                            people[key]["result_status"] = person["result_status"]
+                            people[key]["source_status_code"] = person["source_status_code"]
                     if frame.get("endpoint") != "results":
                         continue
                     timing = row.get("Time")
@@ -130,7 +137,9 @@ def from_merged(path, at):
         key = (str(a.get("race_id")), str(a.get("class_id")), str(a["athlete_id"]))
         people[key] = {
             "race_id": key[0], "class_id": key[1], "athlete_id": key[2],
-            "bib": a.get("bib"), "name": a.get("name"), "nation": a.get("nation")
+            "bib": a.get("bib"), "name": a.get("name"), "nation": a.get("nation"),
+            "result_status": a.get("result_status"),
+            "source_status_code": a.get("source_status_code")
         }
         for cp in a.get("checkpoints", []):
             elapsed = cp.get("runtime_ms")
@@ -202,10 +211,12 @@ def checkpoint_state(people, readings, at, mode, finish_stations=()):
                 "comparable_athletes": detail["observed_competitors"],
                 "position_scope": "same_class_and_checkpoint_only",
             }
+        explicit_status = person.get("result_status")
         classes[key[1]].append({
             **person,
-            "status": "finished" if latest and latest["station"] in finish_stations else (
-                "passed_checkpoint" if latest else "no_verified_passing"),
+            "status": explicit_status if explicit_status else (
+                "finished" if latest and latest["station"] in finish_stations else (
+                    "passed_checkpoint" if latest else "no_verified_passing")),
             "last_checkpoint": point,
             "overall_position": None,
         })
