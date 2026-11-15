@@ -432,3 +432,37 @@ metadata, then inspect the reconstructed leaderboard on both sides of
 the observed time. Tests cover the temporal boundary and unordered
 input snapshots. Both observed and reconstructed modes still require
 careful distinction from a fully observed real-time timing feed.
+
+
+### UI source attribution contract (dev, no live IBU connection yet)
+
+The combined replay output now includes `sources`:
+
+- `sources.results` and `sources.shooting` have independent
+  `provider_id` (`ccresult`), `provider_name`,
+  `last_recorded_receipt_local`, `data_available`, `data_mode`,
+  `transport_status`, `freshness`, and `live_verified`.
+- `sources.ibu.connection_state = not_implemented`: IBU is a supported
+  provider identifier for future adapters **but is not connected**.
+- `sources.providers_connected = []`: an offline playback is not a
+  persistent provider connection.
+- `sources.mixed_provider_join_verified = false`: never silently join
+  IBU and CCResult results without mapping race, class, athlete and
+  checkpoint identifiers.
+
+An offline replay must **never** display a green LIVE badge. In a
+future custom card, show a compact source label in the header and an
+expander with distinct result and shooting provenance plus last
+receipt. Source freshness and live status must be derived from actual
+adapter state, not from the source's brand name.
+
+Planned card visual-editor settings (not implemented): automatic or
+manual source preference; separate result/range source labels; source
+details visible by default or expandable; stale-time threshold;
+national flags, layout density, and shot target appearance. No YAML
+editing should be required for the normal settings once the frontend
+editor is built.
+
+```bash
+python -m unittest -v test_ibu_source_provenance test_ibu_combined_replay
+```
