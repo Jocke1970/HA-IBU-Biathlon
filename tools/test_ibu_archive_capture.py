@@ -43,15 +43,15 @@ class ArchiveTests(unittest.TestCase):
             self.assertEqual(json.loads((folder/"results.json").read_text()), payload)
 
     def test_finite_race_list(self):
-        self.assertEqual(len(ANALYSIS), 9)
-        self.assertEqual(ANALYSIS[0], "S1TM")
-        self.assertEqual(ANALYSIS[-1], "SKIT")
+        self.assertEqual(len(ANALYSIS), 47)
+        self.assertEqual(ANALYSIS[0], "CRST")
+        self.assertEqual(ANALYSIS[-1], "RNGT4")
 
     def test_invalid_race_id_rejected_before_network(self):
         with self.assertRaises(SystemExit):
             main(["--mode","race","--race-id","../secret"])
 
-    def test_race_capture_has_ten_requests_once(self):
+    def test_race_capture_has_all_analysis_requests_once(self):
         fake = FakeSession()
         with (tempfile.TemporaryDirectory() as root,
               patch("ibu_archive_capture.find_key",return_value="not-to-print"),
@@ -61,12 +61,14 @@ class ArchiveTests(unittest.TestCase):
             code = main(["--mode","race","--race-id","BTRACETEST",
                          "--out",root,"--pause","0.5"])
             self.assertEqual(code, 0)
-            self.assertEqual(len(fake.calls), 10)
+            self.assertEqual(len(fake.calls), 48)
             folder=Path(root)/"race_BTRACETEST"
             manifest=json.loads((folder/"manifest.json").read_text())
-            self.assertEqual(len(manifest["requests"]),10)
+            self.assertEqual(len(manifest["requests"]),48)
             self.assertNotIn("not-to-print", str(manifest))
             self.assertTrue((folder/"analysis_S1TM.json").exists())
+            self.assertTrue((folder/"analysis_STTM.json").exists())
+            self.assertTrue((folder/"analysis_CRS12.json").exists())
             # Intentional no-overwrite contract.
             with self.assertRaises(SystemExit):
                 main(["--mode","race","--race-id","BTRACETEST","--out",root])
