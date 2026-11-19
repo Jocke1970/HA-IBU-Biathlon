@@ -11,14 +11,23 @@ undocumented interface, not a guaranteed public integration contract.
 Save raw replies, field paths and metadata. Select concrete RaceIds from
 the competition list instead of inferring IDs.
 
-**Phase B, one chosen RaceId:** `Results(RaceId=...)` and the nine
-currently known `AnalyticResults` categories:
+**Phase B, one chosen RaceId:** `Results(RaceId=...)` and **47 known
+`AnalyticResults` TypeIds** from the independent `prtkv/biathlonresults`
+`AnalysisType` enumeration:
 
-| TypeId | Working group | Confidence |
+| TypeIds | Working group | Notes |
 |---|---|---|
-| S1TM–S4TM | shooting-stage time analyses | Candidate; verify with raw response |
-| RNG1–RNG4 | range-stage analyses | Candidate; verify with raw response |
-| SKIT | skiing analysis | Candidate; verify with raw response |
+| CRST, RNGT, STTM, SKIT, PURS | Overall course, range, shooting, ski, pursuit time | Verify semantics |
+| CRS1–CRS12 | Per-ski-lap/course analysis | Not all races have 12 laps |
+| RNG1–RNG8 | Individual range-stage analyses | Depends on format |
+| S1TM–S8TM | Individual shooting-stage time analyses | Depends on format |
+| FI1L–FI4L | Relay-leg results | For applicable races |
+| CRST1–CRST4, RNGT1–RNGT4 | Relay-leg course/range times | For applicable races |
+| BSTW, BSTM | Best women's/men's analysis | May not apply |
+
+This is **48 read-only requests in one race capture**, spaced at least
+0.5 seconds apart (default 1 second). It's a finite catalog of
+documented-in-client codes, not an unbounded API scan.
 
 Never assert those codes' semantics from the identifier alone. Nonexistent
 analytics may legitimately return empty/error for particular race formats.
@@ -61,7 +70,7 @@ python tools/ibu_archive_capture.py --mode race \
   --race-id ACTUAL_RACE_ID
 ```
 
-The race phase writes ten raw JSON response files plus a manifest, where
+The race phase can write up to 48 raw JSON response files plus a manifest, where
 available. It is intended as a **single broad baseline capture** from a
 specific race. Use different output roots for another capture or race.
 
