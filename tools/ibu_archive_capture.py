@@ -20,10 +20,18 @@ import time
 import requests
 from ibu_api_probe import API, SESSION, find_key, rows
 
-# Known analysis identifiers already used by our earlier IBU logger.
-ANALYSIS = ("S1TM", "S2TM", "S3TM", "S4TM",
-            "RNG1", "RNG2", "RNG3", "RNG4", "SKIT")
-CATEGORIES = ("race_results",) + tuple("analysis_" + x for x in ANALYSIS)
+# Full set of named analysis types documented in the independent
+# biathlonresults client. Availability depends on competition/discipline.
+# These are known TypeId candidates, not guaranteed enabled endpoints.
+ANALYSIS = (
+    "CRST", "RNGT", "STTM", "SKIT", "PURS", "BSTW", "BSTM",
+    *(f"CRS{i}" for i in range(1, 13)),
+    *(f"RNG{i}" for i in range(1, 9)),
+    *(f"S{i}TM" for i in range(1, 9)),
+    *(f"FI{i}L" for i in range(1, 5)),
+    *(f"CRST{i}" for i in range(1, 5)),
+    *(f"RNGT{i}" for i in range(1, 5)),
+)
 
 
 def utc_now():
@@ -148,7 +156,7 @@ def main(argv=None):
     p.add_argument("--event-id", help="Specific event to fetch competitions in catalog mode")
     p.add_argument("--race-id", help="IBU RaceId in race mode")
     p.add_argument("--out", default="captures/ibu_archive")
-    p.add_argument("--pause", type=float, default=0.7, help="Seconds between GET requests, min 0.5")
+    p.add_argument("--pause", type=float, default=1.0, help="Seconds between GET requests, min 0.5")
     args = p.parse_args(argv)
     try:
         season = safe_id(args.season)
