@@ -106,6 +106,33 @@ class HaCollectorTests(unittest.IsolatedAsyncioTestCase):
         await self.collector.discover(self.clock)
         self.assertEqual(self.collector.races, {})
 
+    async def test_official_finished_race_can_be_collected_after_five_hours(self):
+        race = "BT2627SWRLCP01SMIN"
+        from datetime import timedelta
+        self.collector.race_status[race] = {
+            "schedule": "FINISHED", "result": "OFFICIAL"}
+        start = self.clock - timedelta(hours=8)
+        self.assertTrue(self.collector.needs_post_capture(race, start, self.clock))
+        self.collector.write_json(self.collector.completed_marker(race),
+                                  {"race_id": race, "captured_utc": self.clock.isoformat()})
+        self.assertFalse(self.collector.needs_post_capture(race, start, self.clock))
+        # Persisted marker prevents re-archiving after restart.
+        restarted = Collector(self.session, self.tmp.name, api_key="private-test-key",
+                              now=lambda: self.clock)
+        restarted.race_status[race] = {"schedule": "FINISHED", "result": "OFFICIAL"}
+        self.assertFalse(restarted.needs_post_capture(race, start, self.clock))
+
+    async def test_no_false_post_capture_for_unofficial_or_very_old_event(self):
+        from datetime import timedelta
+        race = "BT2627SIBUCP01SWSP"
+        self.collector.race_status[race] = {
+            "schedule": "SCHEDULED", "result": "START_LIST"}
+        start = self.clock - timedelta(hours=8)
+        self.assertFalse(self.collector.needs_post_capture(race, start, self.clock))
+        self.collector.race_status[race]["result"] = "OFFICIAL"
+        self.assertFalse(self.collector.needs_post_capture(
+            race, self.clock - timedelta(days=8), self.clock))
+
     async def test_live_and_broad_capture_counts(self):
         race = "BT2627SWRLCP01SMIN"
         await self.collector.sample(race, "live")
