@@ -56,6 +56,17 @@ class HaCollectorTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(collector.status["key_discovery_scripts_found"], 0)
         self.assertEqual(collector.status["key_discovery_scripts_checked"], 0)
 
+    async def test_modern_bundle_asset_discovery(self):
+        html = ('<script type="module" src=/assets/app-abc.js?v=1></script>'
+                '<link rel="modulepreload" href="/assets/chunk.js">'
+                '<script defer src="/assets/vendor.js"></script>')
+        assets = collector_module.frontend_assets(html)
+        self.assertEqual(len(assets), 3)
+        self.assertTrue(assets[0].endswith("app-abc.js?v=1"))
+        self.assertNotIn("https://evil.example/extra.js",
+                         collector_module.frontend_assets(
+                             '<script src="https://evil.example/extra.js"></script>'))
+
     async def test_clock_parsing_fails_closed(self):
         self.assertIsNone(collector_module.parse_date("2026-11-26T14:00:00"))
         self.assertIsNone(collector_module.parse_date("2026-11-26"))
