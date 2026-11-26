@@ -46,8 +46,9 @@ def parse_date(value, *, date_only=False):
     try:
         stamp = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
         if stamp.tzinfo is None:
-            if date_only and len(value.strip()) == 10:
-                return stamp.replace(tzinfo=timezone.utc)
+            if date_only and len(value.strip()) >= 10:
+                # For event *day* filtering only; no race clock is inferred.
+                return datetime.fromisoformat(value.strip()[:10]).replace(tzinfo=timezone.utc)
             return None
         return stamp.astimezone(timezone.utc)
     except ValueError:
