@@ -108,6 +108,7 @@ class Collector:
         self.events = []
         self.competitions = {}
         self.races = {}
+        self.race_status = {}
         self.status = {"state": "starting", "season": season, "discovered_races": 0}
 
     def write_json(self, path, data):
@@ -255,18 +256,36 @@ class Collector:
                               if (stamp := parse_date(comp.get(field))) is not None), None)
                 if race and stamp:
                     self.races[race] = stamp
+                    self.race_status[race] = {
+                        "schedule": str(comp.get("ScheduleStatus") or "").upper(),
+                        "result": str(comp.get("ResultStatus") or "").upper(),
+                    }
         self.status["events_with_competitions"] = len(self.competitions)
 
     async def sample(self, race, phase):
         data = await self.query("Results", {"RaceId": race}, phase, race)
         if data is None:
-            return
+            return False
         for kind in (LIVE_ANALYSIS if phase == "live" else ANALYSIS):
             await self.query("AnalyticResults", {"RaceId": race, "TypeId": kind},
                              phase, race)
         self.status["last_race"] = race
         self.status["last_phase"] = phase
         self.status["last_capture_utc"] = self.now().isoformat()
+        return True
+
+    def completed_marker(self, race):
+        # Race identifiers are validated during discovery.
+        return self.root / "data" / "completed" / (race + ".json")
+
+    def needs_post_capture(self, race, start, now):
+        if not (start + timedelta(hours=3) <= now <= start + timedelta(days=7)):
+            return False
+        state = self.race_status.get(race, {})
+        confirmed = state.get("schedule") == "FINISHED" or state.get("result") == "OFFICIAL"
+        # Provider may post an official result after scheduled start; avoid
+        # marking races complete only because our wall clock advanced.
+        return confirmed and not self.completed_marker(race).exists()
 
     async def cycle(self):
         if self.lock.locked() or self.paused:
@@ -278,20 +297,26 @@ class Collector:
                 if self.last_catalog is None or now - self.last_catalog >= timedelta(hours=6):
                     await self.catalog(now)
                 await self.discover(now)
+                post_completed_this_cycle = False
                 for race, start in sorted(self.races.items(), key=lambda row: row[1]):
-                    if not (start - timedelta(hours=2) <= now <= start + timedelta(hours=5)):
-                        continue
                     if start - timedelta(minutes=45) <= now < start and (race, "pre") not in self.last_broad:
-                        await self.sample(race, "pre")
-                        self.last_broad.add((race, "pre"))
+                        if await self.sample(race, "pre"):
+                            self.last_broad.add((race, "pre"))
                     if start <= now <= start + timedelta(hours=3):
                         previous = self.last_live.get(race)
                         if previous is None or now - previous >= timedelta(seconds=60):
-                            await self.sample(race, "live")
-                            self.last_live[race] = now
-                    if now > start + timedelta(hours=3) and (race, "post") not in self.last_broad:
-                        await self.sample(race, "post")
-                        self.last_broad.add((race, "post"))
+                            if await self.sample(race, "live"):
+                                self.last_live[race] = now
+                    # Catch up finished races even when HA was off during the
+                    # event. One 48-request post archive per cycle, at most.
+                    if not post_completed_this_cycle and self.needs_post_capture(race, start, now):
+                        if await self.sample(race, "post"):
+                            self.write_json(self.completed_marker(race), {
+                                "race_id": race,
+                                "captured_utc": self.now().isoformat(),
+                                "result_status": self.race_status.get(race, {}),
+                            })
+                            post_completed_this_cycle = True
                 self.status["state"] = "running"
                 self.status.pop("last_error", None)
             except ApiUnavailable as exc:
