@@ -30,7 +30,7 @@ ENDPOINTS = {"Seasons", "Events", "Cups", "Competitions", "Results", "AnalyticRe
 ID_RE = re.compile(r"^[A-Za-z0-9_-]{2,90}$")
 KEY_RE = re.compile(r"""ApiKey\s*=\s*['"]([0-9a-fA-F-]{36})['"]""")
 # Support quoted/unquoted script src, query-string assets and modulepreload links.
-ASSET_RE = re.compile(r"""(?:<script\\b[^>]*?\\bsrc|<link\\b[^>]*?\\bhref)\\s*=\\s*(?:["']([^"']+)["']|([^\\s>]+))""", re.I)
+ASSET_RE = re.compile(r"""(?:<script\b[^>]*?\bsrc|<link\b[^>]*?\bhref)\s*=\s*(?:["']([^"']+)["']|([^\s>]+))""", re.I)
 
 
 def frontend_assets(html):
