@@ -29,7 +29,19 @@ LIVE_ANALYSIS = ("RNGT", "STTM", "SKIT")
 ENDPOINTS = {"Seasons", "Events", "Cups", "Competitions", "Results", "AnalyticResults"}
 ID_RE = re.compile(r"^[A-Za-z0-9_-]{2,90}$")
 KEY_RE = re.compile(r"""ApiKey\s*=\s*['"]([0-9a-fA-F-]{36})['"]""")
-SCRIPT_RE = re.compile(r"""<script[^>]*\ssrc=['"]([^'"]+\.js[^'"]*)['"]""", re.I)
+# Support quoted/unquoted script src, query-string assets and modulepreload links.
+ASSET_RE = re.compile(r"""(?:<script\\b[^>]*?\\bsrc|<link\\b[^>]*?\\bhref)\\s*=\\s*(?:["']([^"']+)["']|([^\\s>]+))""", re.I)
+
+
+def frontend_assets(html):
+    """Same-origin JS references only. No unbounded asset discovery."""
+    result = []
+    for match in ASSET_RE.finditer(html):
+        src = (match.group(1) or match.group(2)).strip()
+        url = urljoin(SITE, src)
+        if url.startswith(SITE) and url.split("?", 1)[0].endswith(".js") and url not in result:
+            result.append(url)
+    return result
 
 
 def now_utc():
@@ -115,13 +127,21 @@ class Collector:
                 html = await response.text()
         except (asyncio.TimeoutError, OSError) as exc:
             raise ApiUnavailable("IBU site access failed: " + type(exc).__name__) from exc
-        scripts = SCRIPT_RE.findall(html)
+        # Some builds inject the public frontend variable into inline HTML.
+        inline_match = KEY_RE.search(html)
+        if inline_match:
+            self.api_key = inline_match.group(1)
+            self.status["key_discovery"] = "inline_html"
+            return
+        scripts = frontend_assets(html)
+        self.status["key_discovery_html_bytes"] = len(html.encode("utf-8"))
+        self.status["key_discovery_script_tags"] = len(re.findall(r"<script\\b", html, re.I))
         self.status["key_discovery_scripts_found"] = len(scripts)
         scripts.sort(key=lambda name: "app" not in name.rsplit("/", 1)[-1].lower())
         tested = 0
         successful = 0
         for script in scripts[:30]:
-            url = urljoin(SITE, script)
+            url = script
             if not url.startswith(SITE) or not url.split("?", 1)[0].endswith(".js"):
                 continue
             tested += 1
