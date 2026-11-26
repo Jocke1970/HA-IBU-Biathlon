@@ -107,28 +107,44 @@ class Collector:
     async def ensure_key(self):
         if self.api_key:
             return
-        async with self.session.get(SITE, timeout=20) as response:
-            if response.status != 200:
-                raise ApiUnavailable("Public IBU site unavailable")
-            html = await response.text()
+        try:
+            async with self.session.get(SITE, timeout=20) as response:
+                self.status["key_discovery_site_status"] = response.status
+                if response.status != 200:
+                    raise ApiUnavailable("Public IBU site returned HTTP %s" % response.status)
+                html = await response.text()
+        except (asyncio.TimeoutError, OSError) as exc:
+            raise ApiUnavailable("IBU site access failed: " + type(exc).__name__) from exc
         scripts = SCRIPT_RE.findall(html)
+        self.status["key_discovery_scripts_found"] = len(scripts)
         scripts.sort(key=lambda name: "app" not in name.rsplit("/", 1)[-1].lower())
-        for script in scripts[:12]:
+        tested = 0
+        successful = 0
+        for script in scripts[:30]:
             url = urljoin(SITE, script)
             if not url.startswith(SITE) or not url.split("?", 1)[0].endswith(".js"):
                 continue
+            tested += 1
             await asyncio.sleep(self.delay)
             try:
                 async with self.session.get(url, timeout=20) as response:
                     if response.status != 200:
                         continue
+                    successful += 1
                     match = KEY_RE.search(await response.text())
                     if match:
                         self.api_key = match.group(1)
+                        self.status["key_discovery"] = "frontend_bundle"
                         return
             except (asyncio.TimeoutError, OSError):
                 continue
-        raise ApiUnavailable("No frontend API key discovered; set api_key in project settings")
+        self.status["key_discovery_scripts_checked"] = tested
+        self.status["key_discovery_scripts_http_200"] = successful
+        raise ApiUnavailable(
+            "No frontend API key discovered (scripts: %s, checked: %s, HTTP 200: %s); "
+            "set api_key in project settings if authorized"
+            % (len(scripts), tested, successful)
+        )
 
     async def query(self, endpoint, params, phase, token):
         if endpoint not in ENDPOINTS or self.paused:
