@@ -46,6 +46,16 @@ class HaCollectorTests(unittest.IsolatedAsyncioTestCase):
                                    now=lambda: self.clock, delay=1)
         self.collector.delay = 0
 
+    async def test_key_discovery_reports_script_count_without_secrets(self):
+        session = FakeSession([])
+        session.get = lambda *a, **k: FakeResponse({"irrelevant":"no-script"})
+        collector = Collector(session, self.tmp.name, now=lambda: self.clock, delay=1)
+        with self.assertRaises(collector_module.ApiUnavailable) as failure:
+            await collector.ensure_key()
+        self.assertIn("scripts: 0", str(failure.exception))
+        self.assertEqual(collector.status["key_discovery_scripts_found"], 0)
+        self.assertEqual(collector.status["key_discovery_scripts_checked"], 0)
+
     async def test_clock_parsing_fails_closed(self):
         self.assertIsNone(collector_module.parse_date("2026-11-26T14:00:00"))
         self.assertIsNone(collector_module.parse_date("2026-11-26"))
