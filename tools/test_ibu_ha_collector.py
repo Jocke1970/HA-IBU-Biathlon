@@ -1,0 +1,97 @@
+"""Network-free regressions for scheduled IBU capture and JSON archival."""
+import asyncio
+from datetime import datetime, timezone
+import importlib.util
+import json
+from pathlib import Path
+import tempfile
+import unittest
+
+PATH = Path(__file__).resolve().parents[1] / "custom_components" / "ibu_biathlon" / "collector.py"
+SPEC = importlib.util.spec_from_file_location("ibu_capture_pure", PATH)
+collector_module = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(collector_module)
+Collector = collector_module.Collector
+
+
+class FakeResponse:
+    def __init__(self, value=None, status=200):
+        self.status = status
+        self.body = json.dumps(value if value is not None else []).encode()
+    async def __aenter__(self):
+        return self
+    async def __aexit__(self, *args):
+        return False
+    async def read(self):
+        return self.body
+    async def text(self):
+        return self.body.decode()
+
+
+class FakeSession:
+    def __init__(self, value=None, status=200):
+        self.value, self.status, self.calls = value, status, []
+    def get(self, url, **kwargs):
+        self.calls.append((url, kwargs))
+        return FakeResponse(self.value, self.status)
+
+
+class HaCollectorTests(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.clock = datetime(2026, 11, 26, 12, tzinfo=timezone.utc)
+        self.session = FakeSession([])
+        self.collector = Collector(self.session, self.tmp.name, api_key="private-test-key",
+                                   now=lambda: self.clock, delay=1)
+        self.collector.delay = 0
+
+    async def test_clock_parsing_fails_closed(self):
+        self.assertIsNone(collector_module.parse_date("2026-11-26T14:00:00"))
+        self.assertIsNone(collector_module.parse_date("2026-11-26"))
+        self.assertEqual(collector_module.parse_date("2026-11-26", date_only=True).hour, 0)
+        self.assertEqual(collector_module.parse_date("2026-11-26T14:00:00Z").hour, 14)
+
+    async def test_raw_capture_audit_and_no_token(self):
+        race = "BT2627SWRLCP01SMIN"
+        await self.collector.query("Results", {"RaceId": race}, "live", race)
+        files = list((Path(self.tmp.name) / "data" / "raw").rglob("*.json"))
+        audits = list((Path(self.tmp.name) / "data" / "audit").glob("*.jsonl"))
+        self.assertEqual(len(files), 1)
+        self.assertEqual(len(audits), 1)
+        self.assertNotIn("private-test-key", files[0].read_text() + audits[0].read_text())
+
+    async def test_denial_pauses_collection(self):
+        self.session.status = 429
+        with self.assertRaises(collector_module.ApiUnavailable):
+            await self.collector.query("Results", {"RaceId": "x"}, "live", "x")
+        with self.assertRaises(collector_module.ApiUnavailable):
+            await self.collector.query("Results", {"RaceId": "x"}, "live", "x")
+        self.assertEqual(len(self.session.calls), 1)
+
+    async def test_event_and_race_discovery(self):
+        self.collector.events = [{"EventId": "BT2627SWRLCP01",
+                                  "StartDate": "2026-11-25", "EndDate": "2026-11-29"}]
+        self.session.value = [{"RaceId": "BT2627SWRLCP01SMIN",
+                               "StartTime": "2026-11-26T13:00:00Z"}]
+        await self.collector.discover(self.clock)
+        self.assertEqual(len(self.collector.races), 1)
+
+    async def test_unspecified_timezone_not_scheduled(self):
+        self.collector.events = [{"EventId": "BT2627SWRLCP01", "StartDate": "2026-11-25"}]
+        self.session.value = [{"RaceId": "BT2627SWRLCP01SMIN",
+                               "StartTime": "2026-11-26T13:00:00"}]
+        await self.collector.discover(self.clock)
+        self.assertEqual(self.collector.races, {})
+
+    async def test_live_and_broad_capture_counts(self):
+        race = "BT2627SWRLCP01SMIN"
+        await self.collector.sample(race, "live")
+        self.assertEqual(len(self.session.calls), 4)
+        self.session.calls.clear()
+        await self.collector.sample(race, "post")
+        self.assertEqual(len(self.session.calls), 1 + len(collector_module.ANALYSIS))
+
+
+if __name__ == "__main__":
+    unittest.main()
