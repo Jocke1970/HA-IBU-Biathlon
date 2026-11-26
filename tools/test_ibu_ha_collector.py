@@ -50,6 +50,7 @@ class HaCollectorTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(collector_module.parse_date("2026-11-26T14:00:00"))
         self.assertIsNone(collector_module.parse_date("2026-11-26"))
         self.assertEqual(collector_module.parse_date("2026-11-26", date_only=True).hour, 0)
+        self.assertEqual(collector_module.parse_date("2026-11-26T00:00:00", date_only=True).day, 26)
         self.assertEqual(collector_module.parse_date("2026-11-26T14:00:00Z").hour, 14)
 
     async def test_raw_capture_audit_and_no_token(self):
