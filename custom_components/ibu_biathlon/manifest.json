@@ -1,0 +1,11 @@
+{
+  "domain": "ibu_biathlon",
+  "name": "IBU Biathlon Collector (experimental)",
+  "version": "2026.11.0b1",
+  "documentation": "https://github.com/Jocke1970/HA-IBU-Biathlon",
+  "issue_tracker": "https://github.com/Jocke1970/HA-IBU-Biathlon/issues",
+  "integration_type": "service",
+  "requirements": [],
+  "codeowners": ["@Jocke1970"],
+  "iot_class": "cloud_polling"
+}
