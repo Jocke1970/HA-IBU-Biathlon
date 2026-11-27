@@ -1,5 +1,6 @@
 """Network-free regressions for scheduled IBU capture and JSON archival."""
 import asyncio
+import ast
 from datetime import datetime, timezone
 import importlib.util
 import json
@@ -34,6 +35,24 @@ class FakeSession:
     def get(self, url, **kwargs):
         self.calls.append((url, kwargs))
         return FakeResponse(self.value, self.status)
+
+
+class HaSchedulingTests(unittest.TestCase):
+    def test_timer_and_shutdown_handlers_are_event_loop_callbacks(self):
+        path = PATH.parent / "__init__.py"
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        handlers = {
+            node.name: node for node in ast.walk(tree)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name in ("start_cycle", "stop_collector")
+        }
+        self.assertEqual(set(handlers), {"start_cycle", "stop_collector"})
+        for node in handlers.values():
+            self.assertTrue(
+                any(isinstance(dec, ast.Name) and dec.id == "callback"
+                    for dec in node.decorator_list),
+                f"{node.name} must be a Home Assistant event-loop callback",
+            )
 
 
 class HaCollectorTests(unittest.IsolatedAsyncioTestCase):
