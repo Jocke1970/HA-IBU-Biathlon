@@ -5,6 +5,7 @@ import logging
 
 import voluptuous as vol
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP
+from homeassistant.core import callback
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_track_time_interval
@@ -32,11 +33,20 @@ async def async_setup(hass, config):
                           delay=settings["min_delay"])
     hass.data[DOMAIN] = collector
 
+    @callback
     def start_cycle(_now=None):
-        hass.async_create_task(collector.cycle())
+        """Schedule one cycle on HA's event loop, not an executor thread."""
+        hass.async_create_background_task(
+            collector.cycle(), "ibu_biathlon_collector_cycle"
+        )
+
+    @callback
+    def stop_collector(_event):
+        """Unregister the repeating callback on Home Assistant shutdown."""
+        unsubscribe()
 
     unsubscribe = async_track_time_interval(hass, start_cycle, timedelta(minutes=1))
-    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, lambda _event: unsubscribe())
+    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, stop_collector)
     start_cycle()
     _LOGGER.info("IBU collector initialized; data: %s", root)
     return True
